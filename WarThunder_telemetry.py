@@ -82,7 +82,6 @@ Example full_telemetry dict:
 '''
 
 
-
 import requests
 import json
 import pprint
