@@ -89,8 +89,8 @@ import pprint
 from time import sleep
 
 
-url_indicators = 'http://127.0.0.1:8111/indicators'
-url_state = 'http://127.0.0.1:8111/state'
+url_indicators = 'http://localhost:8111/indicators'
+url_state = 'http://localhost:8111/state'
 
 
 def combine_dicts(to_dict, from_dict):
