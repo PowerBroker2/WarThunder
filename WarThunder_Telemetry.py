@@ -85,7 +85,6 @@ Example full_telemetry dict:
 import requests
 import json
 import pprint
-from time import sleep
 
 
 URL_INDICATORS = 'http://localhost:8111/indicators'
