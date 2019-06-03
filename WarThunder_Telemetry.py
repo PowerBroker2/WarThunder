@@ -116,11 +116,11 @@ class telemInterface(object):
 
         try:
             # get indicator data
-            indicator_response = requests.get(url_indicators)
+            indicator_response = requests.get(URL_INDICATORS)
             self.indicators = json.loads(indicator_response.text)
 
             # get state data
-            state_response = requests.get(url_state)
+            state_response = requests.get(URL_STATE)
             self.state = json.loads(state_response.text)
 
             if self.indicators['valid'] and self.state['valid']:
