@@ -88,8 +88,8 @@ import pprint
 from time import sleep
 
 
-url_indicators = 'http://localhost:8111/indicators'
-url_state = 'http://localhost:8111/state'
+URL_INDICATORS = 'http://localhost:8111/indicators'
+URL_STATE = 'http://localhost:8111/state'
 
 
 def combine_dicts(to_dict, from_dict):
@@ -104,34 +104,11 @@ def combine_dicts(to_dict, from_dict):
 
 class telemInterface(object):
     def __init__(self):
-        self.connected = self.connect()
+        self.connected = False
         self.full_telemetry = {}
         self.basic_telemetry = {}
         self.indicators = {}
-
-    def connect(self):
-        try:
-            # get indicator data
-            indicator_response = requests.get(url_indicators)
-            self.indicators = json.loads(indicator_response.text)
-
-            # get state data
-            state_response = requests.get(url_state)
-            self.state = json.loads(state_response.text)
-
-            if self.indicators['valid'] and self.state['valid']:
-                return True
-
-            else:
-                print("Mission not currently running...")
-                return False
-
-        except Exception as e:
-            if "Failed to establish a new connection" in str(e):
-                print("War Thunder not running...")
-            else:
-                print(e)
-            return False
+        self.state = {}
 
     def get_telemetry(self):
         self.full_telemetry = {}
@@ -160,10 +137,13 @@ class telemInterface(object):
                 self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
                 self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
 
+                self.connected = True
+
                 return True
 
             else:
                 print("Mission not currently running...")
+                self.connected = False
                 return False
 
         except Exception as e:
@@ -171,17 +151,13 @@ class telemInterface(object):
                 print("War Thunder not running...")
             else:
                 print(e)
+            self.connected = False
             return False
 
 
 if __name__ == "__main__":
     my_telem = telemInterface()
 
-    while not my_telem.connected:
-        sleep(1)
-        my_telem.connect()
-
     while True:
         my_telem.get_telemetry()
         pprint.pprint(my_telem.basic_telemetry)
-        sleep(0.1)
