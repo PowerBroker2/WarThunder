@@ -137,9 +137,7 @@ class telemInterface(object):
                 self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
 
                 self.connected = True
-
                 return True
-
             else:
                 print("Mission not currently running...")
                 self.connected = False
