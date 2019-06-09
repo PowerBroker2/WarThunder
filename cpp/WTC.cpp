@@ -39,14 +39,14 @@ dict WTC_telemetry::getState()
 dict WTC_telemetry::getBasic(dict indicators, dict state)
 {
 	const int numKeys = 8;
-	std::string basicKeys[numKeys] = {	"IAS km/h",				// airspeed			km/h
-										"type",					// acft type		type
-										"altitude_hour",		// altitude			meters
-										"flaps %",				// flap position	%
-										"gear %",				// gear position	%
-										"compass",				// heading			degrees
-										"aviahorizon_pitch",	// pitch angle		degrees
-										"aviahorizon_roll" };	// roll angle		degrees
+	std::string basicKeys[numKeys] = {	"IAS km/h",		// airspeed		km/h
+						"type",			// acft type		type
+						"altitude_hour",	// altitude		meters
+						"flaps %",		// flap position	%
+						"gear %",		// gear position	%
+						"compass",		// heading		degrees
+						"aviahorizon_pitch",	// pitch angle		degrees
+						"aviahorizon_roll" };	// roll angle		degrees
 	dict::iterator it;
 	dict results_map;
 
