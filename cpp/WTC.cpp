@@ -39,14 +39,14 @@ dict WTC_telemetry::getState()
 dict WTC_telemetry::getBasic(dict indicators, dict state)
 {
 	const int numKeys = 8;
-	std::string basicKeys[numKeys] = {	"IAS km/h",		// airspeed		km/h
-						"type",			// acft type		type
-						"altitude_hour",	// altitude		meters
-						"flaps %",		// flap position	%
-						"gear %",		// gear position	%
-						"compass",		// heading		degrees
-						"aviahorizon_pitch",	// pitch angle		degrees
-						"aviahorizon_roll" };	// roll angle		degrees
+	std::string basicKeys[numKeys] = {	"IAS km/h",				// airspeed			km/h
+										"type",					// acft type		type
+										"altitude_hour",		// altitude			meters
+										"flaps %",				// flap position	%
+										"gear %",				// gear position	%
+										"compass",				// heading			degrees
+										"aviahorizon_pitch",	// pitch angle		degrees
+										"aviahorizon_roll" };	// roll angle		degrees
 	dict::iterator it;
 	dict results_map;
 
@@ -57,7 +57,6 @@ dict WTC_telemetry::getBasic(dict indicators, dict state)
 			results_map.emplace(it->first, it->second);
 		else
 		{
-
 			it = state.find(basicKeys[i]);
 			if (it != state.end())
 				results_map.emplace(it->first, it->second);
@@ -102,7 +101,7 @@ void WTC_telemetry::htmlToString(char htmlFileName[], char htmlContentsBuff[], i
 {
 	std::ifstream fin(htmlFileName);
 	fin.read(htmlContentsBuff, 2048);
-} 
+}
 
 
 
@@ -117,10 +116,10 @@ dict WTC_telemetry::stringToMap(std::string const& s)
 	std::string::size_type val_end;
 
 	std::string fString = "";
-	fString = replaceAll(s, '\"');
-	fString = replaceAll(fString, ',');
-	fString = replaceAll(fString, '{');
-	fString = replaceAll(fString, '}');
+	fString = removeAll(s, '\"');
+	fString = removeAll(fString, ',');
+	fString = removeAll(fString, '{');
+	fString = removeAll(fString, '}');
 
 	while ((key_end = fString.find(':', key_pos)) != std::string::npos)
 	{
@@ -141,13 +140,29 @@ dict WTC_telemetry::stringToMap(std::string const& s)
 
 
 
-std::string WTC_telemetry::replaceAll(std::string const& s, char const c)
+std::string removeAll(std::string const& s, char const c)
 {
 	std::string returnString = "";
 
 	for (std::string::size_type i = 0; i != s.length(); i++)
 		if (s[i] != c)
 			returnString += s[i];
+
+	return returnString;
+}
+
+
+
+
+std::string replaceAll(std::string const& s, char const c, char const r)
+{
+	std::string returnString = "";
+
+	for (std::string::size_type i = 0; i != s.length(); i++)
+		if (s[i] != c)
+			returnString += s[i];
+		else
+			returnString += r;
 
 	return returnString;
 }

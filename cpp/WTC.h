@@ -14,6 +14,8 @@ typedef std::map<std::string, std::string> dict;
 
 
 
+std::string replaceAll(std::string const& s, char const c, char const r);
+std::string removeAll(std::string const& s, char const c);
 template<typename T> void print(T value);
 void print(dict map);
 void print();
@@ -33,5 +35,4 @@ public:
 private:
 	void htmlToString(char htmlFileName[], char htmlContentsBuff[], int buffLen);
 	dict stringToMap(std::string const& s);
-	std::string replaceAll(std::string const& s, char const c);
 };
