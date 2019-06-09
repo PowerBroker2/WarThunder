@@ -102,7 +102,7 @@ void WTC_telemetry::htmlToString(char htmlFileName[], char htmlContentsBuff[], i
 {
 	std::ifstream fin(htmlFileName);
 	fin.read(htmlContentsBuff, 2048);
-}
+} 
 
 
 
