@@ -77,14 +77,14 @@ dict getState()
 dict getBasic(dict indicators, dict state)
 {
 	const int numKeys = 8;
-	std::string basicKeys[numKeys] = {	"IAS km/h",				// airspeed			km/h
-										"type",					// acft type		type
-										"altitude_hour",		// altitude			meters
-										"flaps %",				// flap position	%
-										"gear %",				// gear position	%
-										"compass",				// heading			degrees
-										"aviahorizon_pitch",	// pitch angle		degrees
-										"aviahorizon_roll" };	// roll angle		degrees
+	std::string basicKeys[numKeys] = {	"IAS km/h",		// airspeed			km/h
+						"type",			// acft type		type
+						"altitude_hour",	// altitude			meters
+						"flaps %",		// flap position	%
+						"gear %",		// gear position	%
+						"compass",		// heading			degrees
+						"aviahorizon_pitch",	// pitch angle		degrees
+						"aviahorizon_roll" };	// roll angle		degrees
 	dict::iterator it;
 	dict results_map;
 
@@ -95,7 +95,6 @@ dict getBasic(dict indicators, dict state)
 			results_map.emplace(it->first, it->second);
 		else
 		{
-
 			it = state.find(basicKeys[i]);
 			if (it != state.end())
 				results_map.emplace(it->first, it->second);
