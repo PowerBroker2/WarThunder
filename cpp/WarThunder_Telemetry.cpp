@@ -40,12 +40,14 @@ int main()
 		indicators = getIndicators();
 		state = getState();
 		basic = getBasic(indicators, state);
-
+		
+		print(indicators);
+		print();
+		print(state);
+		print();
 		print(basic);
 		print();
-		indicators.clear();
-		state.clear();
-		basic.clear();
+		print();
 	}
 
 	return 0;
