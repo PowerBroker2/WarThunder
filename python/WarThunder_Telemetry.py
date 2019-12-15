@@ -7,6 +7,9 @@ Example basic_telemetry dict:
     {'IAS': 2,
      'airframe': 'p-51d-5',
      'altitude': -475.12204,
+     'clock_hour': 8.3,
+     'clock_min': 18.0,
+     'clock_sec': 47.0,
      'flapState': 0,
      'gearState': 0,
      'heading': 98.789597,
@@ -37,6 +40,7 @@ Example full_telemetry dict:
      'carb_temperature': 0.0,
      'clock_hour': 8.3,
      'clock_min': 18.0,
+     'clock_sec': 47.0,
      'compass': 89.343414,
      'compass1': 89.343414,
      'efficiency 1, %': 0,
@@ -82,13 +86,13 @@ Example full_telemetry dict:
 '''
 
 
+import socket
 import requests
-import json
-import pprint
 
 
-URL_INDICATORS = 'http://localhost:8111/indicators'
-URL_STATE = 'http://localhost:8111/state'
+IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
+URL_INDICATORS = 'http://{}:8111/indicators'.format(IP_ADDRESS)
+URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
 
 
 def combine_dicts(to_dict, from_dict):
@@ -101,7 +105,7 @@ def combine_dicts(to_dict, from_dict):
         return False
 
 
-class telemInterface(object):
+class TelemInterface(object):
     def __init__(self):
         self.connected = False
         self.full_telemetry = {}
@@ -116,11 +120,11 @@ class telemInterface(object):
         try:
             # get indicator data
             indicator_response = requests.get(URL_INDICATORS)
-            self.indicators = json.loads(indicator_response.text)
+            self.indicators = indicator_response.json()
 
             # get state data
             state_response = requests.get(URL_STATE)
-            self.state = json.loads(state_response.text)
+            self.state = state_response.json()
 
             if self.indicators['valid'] and self.state['valid']:
                 self.basic_telemetry['airframe']    = self.indicators['type']
@@ -128,6 +132,9 @@ class telemInterface(object):
                 self.basic_telemetry['pitch']       = self.indicators['aviahorizon_pitch']
                 self.basic_telemetry['heading']     = self.indicators['compass']
                 self.basic_telemetry['altitude']    = self.indicators['altitude_hour']
+                self.basic_telemetry['clock_hour']     = self.indicators['clock_hour']
+                self.basic_telemetry['clock_min']     = self.indicators['clock_min']
+                self.basic_telemetry['clock_sec']     = self.indicators['clock_sec']
 
                 self.basic_telemetry['IAS']         = self.state['IAS, km/h']
                 self.basic_telemetry['flapState']   = self.state['flaps, %']
@@ -153,7 +160,9 @@ class telemInterface(object):
 
 
 if __name__ == "__main__":
-    my_telem = telemInterface()
+    import pprint
+    
+    my_telem = TelemInterface()
 
     while True:
         my_telem.get_telemetry()
