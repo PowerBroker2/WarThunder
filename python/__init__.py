@@ -1,3 +1,1 @@
-"""
-Blank
-"""
+from . import *

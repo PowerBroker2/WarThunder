@@ -132,11 +132,11 @@ class TelemInterface(object):
                 self.basic_telemetry['pitch']       = self.indicators['aviahorizon_pitch']
                 self.basic_telemetry['heading']     = self.indicators['compass']
                 self.basic_telemetry['altitude']    = self.indicators['altitude_hour']
-                self.basic_telemetry['clock_hour']     = self.indicators['clock_hour']
-                self.basic_telemetry['clock_min']     = self.indicators['clock_min']
-                self.basic_telemetry['clock_sec']     = self.indicators['clock_sec']
+                self.basic_telemetry['clock_hour']  = self.indicators['clock_hour']
+                self.basic_telemetry['clock_min']   = self.indicators['clock_min']
+                self.basic_telemetry['clock_sec']    = self.indicators['clock_sec']
 
-                self.basic_telemetry['IAS']         = self.state['IAS, km/h']
+                self.basic_telemetry['IAS']         = self.state['TAS, km/h']
                 self.basic_telemetry['flapState']   = self.state['flaps, %']
                 self.basic_telemetry['gearState']   = self.state['gear, %']
 
@@ -154,7 +154,9 @@ class TelemInterface(object):
             if "Failed to establish a new connection" in str(e):
                 print("War Thunder not running...")
             else:
-                print(e)
+                import traceback
+                traceback.print_exc()
+            
             self.connected = False
             return False
 
