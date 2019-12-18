@@ -1,225 +1,165 @@
-import json
-import math
 import os
+import json
+import imagehash
+import socket
 import urllib.request
-import loguru
-
-from xmltodict import unparse
 from PIL import Image, ImageDraw
 from requests import get
 from requests.exceptions import ReadTimeout, ConnectTimeout
-
-# from main import debug_mode
-debug_mode = False
-informed = False
-mimg = 'http://localhost:8111/map.img'
-mobj = 'http://localhost:8111/map_obj.json'
-minf = 'http://localhost:8111/map_info.json'
-
-path = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
+from math import radians, sqrt, sin, cos, atan2
+from maphash import maps
 
 
-def pythag(a, b):
-    return math.sqrt((a ** 2) + (b ** 2))
+DEBUG = False
+
+IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
+URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
+URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
+URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
+
+TEXTURES_PATH   = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
+EARTH_RADIUS    = 6378137 # meters
+REQUEST_TIMEOUT = 0.1
 
 
-def get_distance(x1, y1, x2, y2):
-    return math.sqrt(((y2 - y1) ** 2) + ((x2 - x1) ** 2))
+def hypotenuse(a, b):
+    return sqrt((a ** 2) + (b ** 2))
 
+def distance(x1, y1, x2, y2):
+    '''
+    Description:
+    ------------
+    Find the distance between two points on a cartesian plane
+    '''
+    
+    return sqrt(((y2 - y1) ** 2) + ((x2 - x1) ** 2))
 
-def latlon2meters(lat1, lon1, lat2, lon2):
-    r = 6378.137
-    dLat = lat2 * math.pi / 180 - lat1 * math.pi / 180
-    dLon = lon2 * math.pi / 180 - lon1 * math.pi / 180
-    a = math.sin(dLat/2) * math.sin(dLat/2) + math.cos(lat1 * math.pi / 180) * math.cos(lat2 * math.pi / 180) * math.sin(dLon/2) * math.sin(dLon/2)
-    math.sin(dLon/2) * math.sin(dLon/2)
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    d = r * c
-    return d * 1000
+def coord_dist(lat_1, lon_1, lat_2, lon_2):
+    '''
+    Description:
+    ------------
+    Find the total distance (in meters) between two lat/lon coordinates (dd)
+    '''
+    
+    lat_1_rad = radians(lat_1)
+    lon_1_rad = radians(lon_1)
+    lat_2_rad = radians(lat_2)
+    lon_2_rad = radians(lon_2)
+    
+    d_lat = lat_2_rad - lat_1_rad
+    d_lon = lon_2_rad - lon_1_rad
+    
+    a = (sin(d_lat / 2) ** 2) + cos(lat_1_rad) * cos(lat_2_rad) * (sin(d_lon / 2) ** 2)
+    
+    return 2 * EARTH_RADIUS * atan2(sqrt(a), sqrt(1 - a))
 
+def map_name(map_img):
+    '''
+    Description:
+    ------------
+    Compare map from browser interface to pre-calculated map hash to provide
+    location info: Note that map_img must be a PIL.Image object
+    '''
+    
+    hash_ = str(imagehash.average_hash(map_img))
+    
+    if hash_ in maps.keys():
+        return maps[hash_]
+    
+    print('ERROR: No map found with hash {}'.format(hash_))
+    return None
 
-while True:
-    try:
-        # with open('map.jpg', 'w') as f:
-        #     map_req = get(mimg, timeout=0.02)
-        #     f.write(map_req.content)
-
-        urllib.request.urlretrieve('http://localhost:8111/map.img', 'map.jpg')
-        inf_req = get(minf, timeout=0.02).json()
-        map_obj = get(mobj, timeout=0.02).json()
-        loguru.logger.debug(str("map_info.json retrieved"))
-        break
-
-    except (json.decoder.JSONDecodeError) as err:
-        if not informed:
-            loguru.logger.info("WAITING: Halting map information retrieval; REASON: Waiting to join a match")
-            informed = True
-    except (ReadTimeout, ConnectTimeout) as err:
-        pass
-        # print(err)
-
-
-image = Image.open('map.jpg')
-image_draw = ImageDraw.Draw(image)
-
-map_max = inf_req['map_max']
-map_min = inf_req['map_min']
-map_total = map_max[0] - map_min[0]
-map_total_x = map_max[0] - map_min[0]
-map_total_y = map_max[1] - map_min[1]
-
-grid_zero = inf_req['grid_zero']
-grid_step = inf_req['grid_steps']
-
-step_qnty = map_total / grid_step[0]
-step_size = image.width / step_qnty
-step_offset = map_min[0] - grid_zero[0]
-
-if step_size == map_max[0]:
-    # TODO: document this, it was a hack fix for the odd maps that cause scale problems
-    '''assuming duel map until found to be other'''
-    step_offset = 0
-    step_size = 256
-
-
-pixels_x, pixels_y = image.width, image.height
-
-x_start = 0
-y_start = 0
-x_end = pixels_x
-y_end = pixels_y
-
-for x in range(int(step_offset), int(image.width), int(step_size)):
-    line = ((x, y_start), (x, y_end))
-    image_draw.line(line, fill=256)
-
-for y in range(int(step_offset), int(image.width), int(step_size)):
-    line = ((x_start, y), (x_end, y))
-    image_draw.line(line, fill=256)
-
-loguru.logger.debug(str("drawing grid lines"))
-
-af_list = [el for el in map_obj if el['type'] == 'airfield']
-for i in range(len(af_list)):
-    afsx = af_list[i]['sx'] * pixels_x
-    afsy = af_list[i]['sy'] * pixels_y
-    afex = af_list[i]['ex'] * pixels_x
-    afey = af_list[i]['ey'] * pixels_y
-    acol = tuple(af_list[i]['color[]'])
-    afln = get_distance(afsx, afsy, afex, afey)
-
-    # prevent the aircraft carriers from being drawn as static objects
-    if afln > 20:
-        line = ((afsx, afsy), (afex, afey))
-        image_draw.line(line, fill=acol, width=10)
-
-loguru.logger.debug(str("drawing airfields"))
-
-if os.path.exists('map.jpg'):
-    os.remove('map.jpg')
-
-# TODO: provide a standard .xml to display the custom textures
-# lat long (tacview) to mach (war thunder)
-# we are using a 1 x 1 (lat x long) grid south west of 0,0
-# (lat, long)
-UpperLeft  = UL = ( 0, 0)
-LowerLeft  = LL = (-1, 0)
-UpperRight = UR = ( 0, 1)
-LowerRight = LR = (-1, 1)
-
-
-
-
-
-tex_insert = {
-    "Resources": {
-        "CustomTextureList": {
-            "CustomTexture": {
-                "File": "wt.jpg",
-                "Projection": "Triangle",
-                "BottomLeft": {
-                    "Longitude": "0",
-                    "Latitude": "-0.5888095854284137"
-                },
-                "BottomRight": {
-                    "Longitude": "0.5887199046005696",
-                    "Latitude": "-0.5888095854284137"
-                },
-                "TopRight": {
-                    "Longitude": "0.5887199046005696",
-                    "Latitude": "0"
-                },
-                "TopLeft": {
-                    "Longitude": "0",
-                    "Latitude": "0"
-                }
-            }
-        }
-    }
-}
-
-# take away:
-# 1 latitudinal degree (in meters) is always the same
-# latlon2meters(lat0, lon0, lat1, lon1)
-
-# latlon2meters(0,0,-1,0)
-# >>> 111319.49079327357
-# latlon2meters(0,1,-1,1)
-# >>> 111319.49079327357
-
-# 1 longitudinal degree (in meters) is longer closer to the equator
-# length (in meters) of 1 longitudinal degree at 0 degrees of latitude
-# latlon2meters(0, 0, 0, 1)
-# >>> 111319.49079327357
-
-# length (in meters) of 1 longitudinal degree at 1 degrees of latitude
-# latlon2meters(-1, 0, -1, 1)
-# >>> 111302.53586533663
-
-
-
-scalar_lon_min = latlon2meters( 0,  0,  0,  1)
-scalar_lon_max = latlon2meters(-1,  0, -1,  1)
-# these two are the same; kept for consistency
-scalar_lat_min = latlon2meters( 0,  0, -1,  0)
-scalar_lat_max = latlon2meters( 0,  1, -1,  1)
-
-
-
-tl_lat =  0
-tl_lon =  0
-
-bl_lat = map_total_y / scalar_lat_max * -1
-bl_lon = 0
-
-tr_lat = 0
-tr_lon = map_total_x / scalar_lon_max
-
-br_lat = map_total_y / scalar_lat_min * -1
-br_lon = map_total_x / scalar_lon_min
-
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['BottomLeft']['Longitude'] = bl_lon
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['BottomLeft']['Latitude'] = bl_lat
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['BottomRight']['Longitude'] = br_lon
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['BottomRight']['Latitude'] = br_lat
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['TopLeft']['Longitude'] = tl_lon
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['TopLeft']['Latitude'] = tl_lat
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['TopRight']['Longitude'] = tr_lon
-tex_insert['Resources']['CustomTextureList']['CustomTexture']['TopRight']['Latitude'] = tr_lat
-
-
-# TODO: check for existing .xml and append rather than overwrite
-
-with open(path + '\CustomTextureList.xml', 'w') as fw:
-    fw.write(unparse(tex_insert, pretty=True))
-
-loguru.logger.debug(str("setting size for tacview scaling"))
-
-if debug_mode:
-    image.save('wt.jpg')
-
-if os.path.exists(path):
-    image.save(path + '\wt.jpg')
-
-loguru.logger.debug(str("image saved to: " + path + '\wt.jpg'))
+class MapInfo(object):
+    def __init__(self):
+        self.map_valid = False
+    
+    def download_files(self):
+        '''
+        Description:
+        ------------
+        Sample information about the map and the "seen" objects in the match
+        from the localhost
+        
+        Example self.info:
+        ------------------
+        {'grid_steps': [8192.0, 8192.0],
+         'grid_zero': [-28672.0, 28672.0],
+         'map_generation': 12,
+         'map_max': [32768.0, 32768.0],
+         'map_min': [-32768.0, -32768.0]}
+        
+        Example self.obj:
+        -----------------
+        [{'type': 'airfield',
+          'color': '#185AFF',
+          'color[]': [24, 90, 255],
+          'blink': 0,
+          'icon': 'none',
+          'icon_bg': 'none',
+          'sx': 0.338597,
+          'sy': 0.720108,
+          'ex': 0.357913,
+          'ey': 0.692523},
+         {'type': 'aircraft',
+          'color': '#fa3200',
+          'color[]': [250, 50, 0],
+          'blink': 0,
+          'icon': 'Fighter',
+          'icon_bg': 'none',
+          'x': 0.48744,
+          'y': 0.542793,
+          'dx': -0.640827,
+          'dy': 0.767686},
+         ...]
+        '''
+        
+        self.map_valid = False
+        
+        try:
+            urllib.request.urlretrieve(URL_MAP_IMG, 'map.jpg')
+            self.info = get(URL_MAP_INFO, timeout=REQUEST_TIMEOUT).json()
+            self.obj  = get(URL_MAP_OBJ,  timeout=REQUEST_TIMEOUT).json()
+            
+            self.map_img  = Image.open('map.jpg')
+            self.map_draw = ImageDraw.Draw(self.map_img)
+            self.map_name = map_name(self.map_img)
+            
+            self.map_valid = True
+    
+        except json.decoder.JSONDecodeError:
+            print('ERROR; Waiting to join a match')
+            
+        except ReadTimeout:
+            print('ERROR: ReadTimeout')
+            
+        except ConnectTimeout:
+            print('ERROR: ConnectTimeout')
+        
+        except FileNotFoundError:
+            print('ERROR: map.jpg not found')
+            
+        return self.map_valid
+    
+    def parse_meta(self):
+        '''
+        Description:
+        ------------
+        Calculate values that might be useful for extra processing
+        '''
+        
+        self.map_total   = self.info['map_max'][0] - self.info['map_min'][0]
+        self.map_total_x = self.info['map_max'][0] - self.info['map_min'][0]
+        self.map_total_y = self.info['map_max'][1] - self.info['map_min'][1]
+        
+        self.step_qnty   = self.map_total / self.info['grid_steps'][0]
+        self.step_size   = self.map_img.width / self.step_qnty
+        self.step_offset = self.info['map_min'][0] - self.info['grid_zero'][0]
+        
+        if self.step_size == self.info['map_max'][0]:
+            # TODO: document this, it was a hack fix for the odd maps that cause scale problems
+            '''assuming duel map until found to be other'''
+            self.step_offset = 0
+            self.step_size   = 256
+    
+    
 
