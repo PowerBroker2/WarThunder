@@ -5,4 +5,4 @@ This script makes use of two localhost servers ('http://localhost:8111/indicator
 
 The data can then be easily used for any custom application (i.e. telemetry datalogger and grapher).
 
-Special thanks to @diVineProportion for inspiration and help
+__Special thanks to @diVineProportion for inspiration and help__
