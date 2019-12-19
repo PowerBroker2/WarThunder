@@ -5,7 +5,6 @@ setup(
     packages        = ['WarThunder'],
     version         = '2.0.1',
     install_requires= ['imagehash',
-                       'socket',
                        'PIL'],
     description     = 'Python package used to access air vehicle telemetry while in War Thunder air battles',
     author          = 'Power_Broker',
