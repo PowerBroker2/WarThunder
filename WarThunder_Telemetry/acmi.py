@@ -1,29 +1,59 @@
 import os
-import arrow
 from random import randint
 
 
-MAX_NUM_OBJS     = 1000
+MAX_NUM_OBJS     = 0xFFFFFFFFFFFFFFFE
 header_mandatory = ('FileType={filetype}\n' 
                     'FileVersion={acmiver}\n'
                     '0,ReferenceTime={reftime}Z\n')
 
 
 class ACMI(object):
-    def __init__(self, num_objs):
+    '''
+    Description:
+    ------------
+    Class used to create and maintain a given ACMI file used by the
+    downloadable program Tacview
+    '''
+        
+    def __init__(self, num_objs=1):
         '''
+        Description:
+        ------------
+        Initialize class object and create a member dict named "obj_ids" to
+        hold unique/valid HEX ID values for each object to be displayed
+        
+        :param num_objs: int - number of objects to simulaneously display in Tacview
+        
+        :return self.obj_ids: dict - lookup table of unique object HEX IDs
         '''
         
-        self.entry_vals = []
+        self.obj_ids = {}
         
         if num_objs > MAX_NUM_OBJS:
             raise Exception('Too many objects specified - cannot be more than {}'.format(MAX_NUM_OBJS))
         
-        for x in range(num_objs):
-            self.entry_vals.append({'id': hex(randint(1, MAX_NUM_OBJS + 2))[2:]})
+        for obj_num in range(num_objs):
+            id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
+            
+            # Ensure each ID is unique
+            while id_ in self.obj_ids.values():
+                id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
+                
+            self.obj_ids[str(obj_num)] = id_
         
     def create(self, file_name, reference_time, file_type='text/acmi/tacview', acmi_ver='2.1'):
         '''
+        Description:
+        ------------
+        Create an ACMI file with a basic header
+        
+        :param file_name:      str - full filepath or filename of ACMI file to create
+        :param reference_time: str - time of origin to base all entry
+                                     timestamps off of
+        
+        :return: void
+        
         Example reference_time:
         -----------------------
         '2019-12-19T00:23:17.705626'
@@ -42,15 +72,22 @@ class ACMI(object):
         with open(self.file_name, 'w') as log:
             log.write(header_mandatory.format(filetype=file_type,
                                               acmiver=acmi_ver,
-                                              reference_time))
+                                              reftime=reference_time))
 
     def insert_user_header(self, header_content: dict):
         '''
-        TODO
+        Description:
+        ------------
+        Insert special header parameters
+        (NOTE - DO THIS BEFORE INSERTING ANY ENTRIES)**************************
+        
+        :param header_content: dict - header property names and values
+        
+        :return: bool - whether or not the operation was successful
         '''
         
-        if not type(x) == dict:
-            raise TypeError('"header_content" must be of type dict, not {}'.format(type(x)))
+        if not type(header_content) == dict:
+            raise TypeError('"header_content" must be of type dict, not {}'.format(type(header_content)))
         
         header_list = ['0,{}={}'.format(key, header_content[key]) for key in header_content.keys()]
         header = '\n'.join(header_list) + '\n'
@@ -64,57 +101,38 @@ class ACMI(object):
             print('ERROR - ACMI file not found')
             return False
     
-    def insert_sample(timestamp, data):
+    def insert_entry(self, obj_num, data: dict, timestamp=None):
         '''
-        TODO
+        Description:
+        ------------
+        Log a single entry of telemetry in the ACMI file for a given object
+        
+        :param obj_num: int  - object number as represented in the ID-lookup
+                               dictionary self.obj_ids
+        :param data:    dict - object information to be included in the new entry
+        
+        :return: bool - whether or not the operation was successful
         '''
         
-        entry = '#{:0.2f}\n'.format(timestamp)
-        entry += '|'.join(data)
+        if not type(data) == dict:
+            raise TypeError('"data" must be of type dict, not {}'.format(type(data)))
+        
+        if timestamp:
+            entry = '#{:0.2f}\n{},'.format(timestamp, self.obj_ids[str(obj_num)])
+        else:
+            entry = '{},'.format(self.obj_ids[str(obj_num)])
+        
+        entry += ','.join('{}={}'.format(name, data[name]).replace(',', '\,') for name in data.keys())
         entry += '\n'
         
-
-    sortie_telemetry = (
-        "#{:0.2f}\n{},T={:0.9f}|{:0.9f}|{}|{:0.1f}|{:0.1f}|{:0.1f},".format(
-            time_adjusted_tick, state.PLAYERS_OID, x, y, z, r, p, h
-        )
-        + "Throttle={}".format(s_throttle1)
-        + "RollControlInput={},".format(stick_ailerons)
-        + "PitchControlInput={},".format(stick_elevator)
-        + "YawControlInput={},".format(pedals)
-        + "IAS={:0.6f},".format(ias)
-        + "TAS={:0.6f},".format(tas)
-        + "FuelWeight={},".format(fuel_kg)
-        + "Mach={},".format(m)
-        + "AOA={},".format(aoa)
-        + "FuelVolume={},".format(fuel_vol)
-        + "LandingGear={},".format(gear)
-        + "Flaps={},".format(flaps)
-    )
-
-    sortie_subheader = (
-          "Slot={},".format("0")
-        + "Importance={},".format("1")
-        + "Parachute={},".format("0")
-        + "DragChute={},".format("0")
-        + "Disabled={},".format("0")
-        + "Pilot={},".format("0")
-        + "Name={},".format(unit)
-        + "ShortName={},".format(sname)
-        + "LongName={},".format(lname)
-        + "FullName={},".format(fname)
-        + "Type={},".format("Air+FixedWing")
-        + "Color={},".format("None")
-        + "Callsign={},".format("None")
-        + "Coalition={},".format("None")
-    )
-
-    with open("{}.acmi".format(filename), "a", newline="") as g:
-        if insert_sortie_subheader:
-            g.write(sortie_telemetry + sortie_subheader + "\n")
-            insert_sortie_subheader = False
-        else:
-            g.write(sortie_telemetry + "\n")
+        try:
+            with open(self.file_name, 'a') as log:
+                log.write(entry)
+            return True
+        
+        except FileNotFoundError:
+            print('ERROR - ACMI file not found')
+            return False
     
     
     
