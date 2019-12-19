@@ -6,7 +6,7 @@ setup(
     version         = '2.0.0',
     install_requires= ['imagehash',
                        'socket',
-                       'PIL']
+                       'PIL'],
     description     = 'Python package used to access air vehicle telemetry while in War Thunder air battles',
     author          = 'Power_Broker',
     author_email    = 'gitstuff2@gmail.com',
