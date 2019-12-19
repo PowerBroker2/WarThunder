@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name            = 'WarThunder',
     packages        = ['WarThunder'],
-    version         = '2.0.0',
+    version         = '2.0.1',
     install_requires= ['imagehash',
                        'socket',
                        'PIL'],
@@ -11,7 +11,7 @@ setup(
     author          = 'Power_Broker',
     author_email    = 'gitstuff2@gmail.com',
     url             = 'https://github.com/PowerBroker2/WarThunder',
-    download_url    = 'https://github.com/PowerBroker2/WarThunder/archive/2.0.0.tar.gz',
+    download_url    = 'https://github.com/PowerBroker2/WarThunder/archive/2.0.1.tar.gz',
     keywords        = ['War Thunder'],
     classifiers     = [],
 )
