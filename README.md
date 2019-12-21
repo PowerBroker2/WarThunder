@@ -14,7 +14,7 @@ from WarThunder import telemetry
 if __name__ == '__main__':
     try:
         print('Starting')
-        telem    = telemetry.TelemInterface()
+        telem = telemetry.TelemInterface()
         
         while True:
             if telem.get_telemetry():
