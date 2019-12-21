@@ -93,6 +93,12 @@ URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
 
 
 def combine_dicts(to_dict, from_dict):
+    '''
+    Description:
+    ------------
+    Merges all contents of "from_dict" into "to_dict"
+    '''
+    
     if (type(to_dict) == dict) and (type(from_dict) == dict):
         for key in from_dict.keys():
             to_dict[key] = from_dict[key]
@@ -111,51 +117,76 @@ class TelemInterface(object):
         self.state           = {}
 
     def get_telemetry(self):
+        '''
+        Description:
+        ------------
+        Ping http://localhost:8111/indicators and http://localhost:8111/state
+        to sample telemetry data. Each one of the URL requests returns a
+        respective JSON string. These two JSON strings are converted into
+        dictionaries (self.indicators and self.state). From these dictionaries,
+        two more dictionaries are created: self.full_telemetry and
+        self.basic_telemetry.
+        
+        Dictionary self.full_telemetry holds a combination of all telemetry
+        values returned from http://localhost:8111/indicators and
+        http://localhost:8111/state. Dictionary self.basic_telemetry holds
+        the minimal amount of telmetry needed for navigation and control (see
+        file docstring for more info)
+        '''
+        
         self.full_telemetry  = {}
         self.basic_telemetry = {}
 
         try:
-            # get indicator data
             indicator_response = requests.get(URL_INDICATORS)
-            self.indicators = indicator_response.json()
+            self.indicators    = indicator_response.json()
 
-            # get state data
             state_response = requests.get(URL_STATE)
-            self.state = state_response.json()
+            self.state     = state_response.json()
 
             if self.indicators['valid'] and self.state['valid']:
-                self.basic_telemetry['airframe']    = self.indicators['type']
-                self.basic_telemetry['roll']        = self.indicators['aviahorizon_roll']
-                self.basic_telemetry['pitch']       = self.indicators['aviahorizon_pitch']
-                self.basic_telemetry['heading']     = self.indicators['compass']
-                self.basic_telemetry['altitude']    = self.indicators['altitude_hour']
-
-                self.basic_telemetry['IAS']         = self.state['TAS, km/h']
-                self.basic_telemetry['flapState']   = self.state['flaps, %']
-                self.basic_telemetry['gearState']   = self.state['gear, %']
+                self.basic_telemetry['airframe'] = self.indicators['type']
+                self.basic_telemetry['roll']     = self.indicators['aviahorizon_roll']
+                self.basic_telemetry['pitch']    = self.indicators['aviahorizon_pitch']
+                self.basic_telemetry['heading']  = self.indicators['compass']
+                self.basic_telemetry['altitude'] = self.indicators['altitude_hour']
+                
+                try: 
+                    self.basic_telemetry['IAS'] = self.state['TAS, km/h']
+                except KeyError:
+                    self.basic_telemetry['IAS'] = None
+                
+                try: 
+                    self.basic_telemetry['flapState'] = self.state['flaps, %']
+                except KeyError:
+                    self.basic_telemetry['flapState'] = None
+                
+                try: 
+                    self.basic_telemetry['gearState'] = self.state['gear, %']
+                except KeyError:
+                    self.basic_telemetry['gearState'] = None
 
                 self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
                 self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
 
                 self.connected = True
-                return True
             else:
-                print("Mission not currently running...")
+                print('Mission not currently running...')
                 self.connected = False
-                return False
 
         except Exception as e:
-            if "Failed to establish a new connection" in str(e):
-                print("War Thunder not running...")
+            if 'Failed to establish a new connection' in str(e):
+                print('War Thunder not running...')
             else:
                 import traceback
                 traceback.print_exc()
             
             self.connected = False
-            return False
+        
+        return self.connected
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import pprint
     
     my_telem = TelemInterface()
