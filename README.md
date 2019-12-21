@@ -1,7 +1,7 @@
 # WarThunder Library
 Python and C++ libraries to query and access vehicle telemetry data while in War Thunder air battles (NOT tanks)
 
-This script makes use of War Thunder's localhost server pages (http://localhost:8111/indicators, http://localhost:8111/state, http://localhost:8111/map.img, http://localhost:8111//map_obj.json, and http://localhost:8111/map_info.json) that War Thunder automatically runs when you launch a game match. If it is an air battle, these pages will include JSON formatted data with valid airplane telemetry. This telemetry is then converted and returned to the calling function/user.
+These libraries make use of War Thunder's localhost server pages (http://localhost:8111/indicators, http://localhost:8111/state, http://localhost:8111/map.img, http://localhost:8111//map_obj.json, and http://localhost:8111/map_info.json) that the game automatically serves when you launch a game match. If it is an air battle, these pages will include JSON formatted data with valid airplane telemetry. This telemetry is then converted and returned to the calling function/user.
 
 The data can then be easily used for any custom application (i.e. telemetry datalogger and grapher).
 
