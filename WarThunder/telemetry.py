@@ -7,9 +7,6 @@ Example basic_telemetry dict:
     {'IAS': 2,
      'airframe': 'p-51d-5',
      'altitude': -475.12204,
-     'clock_hour': 8.3,
-     'clock_min': 18.0,
-     'clock_sec': 47.0,
      'flapState': 0,
      'gearState': 0,
      'heading': 98.789597,
@@ -107,14 +104,14 @@ def combine_dicts(to_dict, from_dict):
 
 class TelemInterface(object):
     def __init__(self):
-        self.connected = False
-        self.full_telemetry = {}
+        self.connected       = False
+        self.full_telemetry  = {}
         self.basic_telemetry = {}
-        self.indicators = {}
-        self.state = {}
+        self.indicators      = {}
+        self.state           = {}
 
     def get_telemetry(self):
-        self.full_telemetry = {}
+        self.full_telemetry  = {}
         self.basic_telemetry = {}
 
         try:
@@ -132,9 +129,6 @@ class TelemInterface(object):
                 self.basic_telemetry['pitch']       = self.indicators['aviahorizon_pitch']
                 self.basic_telemetry['heading']     = self.indicators['compass']
                 self.basic_telemetry['altitude']    = self.indicators['altitude_hour']
-                self.basic_telemetry['clock_hour']  = self.indicators['clock_hour']
-                self.basic_telemetry['clock_min']   = self.indicators['clock_min']
-                self.basic_telemetry['clock_sec']    = self.indicators['clock_sec']
 
                 self.basic_telemetry['IAS']         = self.state['TAS, km/h']
                 self.basic_telemetry['flapState']   = self.state['flaps, %']
