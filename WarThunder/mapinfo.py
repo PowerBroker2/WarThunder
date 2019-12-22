@@ -74,7 +74,7 @@ def get_grid_info(map_img):
         return maps[hash_]
     
     print('ERROR: No map found with hash {}'.format(hash_))
-    return None
+    return 'UNKNOWN'
 
 
 class MapInfo(object):

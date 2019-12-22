@@ -1,5 +1,9 @@
 import os
+import arrow
+import ntplib
+import datetime as dt
 from random import randint
+from time import sleep
 
 
 MAX_NUM_OBJS     = 0xFFFFFFFFFFFFFFFE
@@ -29,6 +33,10 @@ class ACMI(object):
         '''
         
         self.obj_ids = {}
+        self.ntp     = ntplib.NTPClient()
+        
+        while not self.get_offset():
+            sleep(1)
         
         if num_objs > MAX_NUM_OBJS:
             raise Exception('Too many objects specified - cannot be more than {}'.format(MAX_NUM_OBJS))
@@ -42,15 +50,13 @@ class ACMI(object):
                 
             self.obj_ids[str(obj_num)] = id_
         
-    def create(self, file_name, reference_time, file_type='text/acmi/tacview', acmi_ver='2.1'):
+    def create(self, file_name, file_type='text/acmi/tacview', acmi_ver='2.1'):
         '''
         Description:
         ------------
         Create an ACMI file with a basic header
         
-        :param file_name:      str - full filepath or filename of ACMI file to create
-        :param reference_time: str - time of origin to base all entry
-                                     timestamps off of
+        :param file_name: str - full filepath or filename of ACMI file to create
         
         :return: void
         
@@ -59,7 +65,8 @@ class ACMI(object):
         '2019-12-19T00:23:17.705626'
         '''
         
-        self.file_name = file_name
+        self.file_name      = file_name
+        self.reference_time = self.get_timestamp()
         
         if not self.file_name.endswith('.acmi'):
             self.file_name += '.acmi'
@@ -72,7 +79,39 @@ class ACMI(object):
         with open(self.file_name, 'w') as log:
             log.write(header_mandatory.format(filetype=file_type,
                                               acmiver=acmi_ver,
-                                              reftime=reference_time))
+                                              reftime=str(self.get_timestamp()).split('+')[0]))
+
+    def get_offset(self):
+        '''
+        Description:
+        ------------
+        Find the difference between machine and NTP time
+        
+        :return: float - difference (in seconds) between machine and NTP time
+        '''
+        
+        try:
+            r = self.ntp.request('pool.ntp.org')
+        except ntplib.NTPException:
+            import traceback
+            traceback.print_exc()
+            return False
+        
+        self.utc_offset = (r.recv_time - r.orig_time + r.tx_time - r.dest_time) / 2
+        
+        return self.utc_offset
+    
+    def get_timestamp(self):
+        '''
+        Description:
+        ------------
+        Find the true time to provide accurate sample timestamps
+        '''
+        
+        sec = int(self.utc_offset)
+        us  = int((1 % self.utc_offset) * 1000000)
+        
+        return arrow.utcnow().shift(seconds=sec, microseconds=us)
 
     def insert_user_header(self, header_content: dict):
         '''
@@ -101,7 +140,7 @@ class ACMI(object):
             print('ERROR - ACMI file not found')
             return False
     
-    def insert_entry(self, obj_num, data: dict, timestamp=None):
+    def insert_entry(self, obj_num, data: dict, timestamp=True):
         '''
         Description:
         ------------
@@ -118,7 +157,9 @@ class ACMI(object):
             raise TypeError('"data" must be of type dict, not {}'.format(type(data)))
         
         if timestamp:
-            entry = '#{:0.2f}\n{},'.format(timestamp, self.obj_ids[str(obj_num)])
+            current_time = self.get_timestamp()
+            diff_sec     = (current_time - self.reference_time).total_seconds()
+            entry = '#{:0.2f}\n{},'.format(diff_sec, self.obj_ids[str(obj_num)])
         else:
             entry = '{},'.format(self.obj_ids[str(obj_num)])
         

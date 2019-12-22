@@ -192,6 +192,9 @@ class TelemInterface(object):
 
             if self.indicators['valid'] and self.state['valid']:
                 try:
+                    self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
+                    self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
+                    
                     self.basic_telemetry['airframe'] = self.indicators['type']
                     self.basic_telemetry['roll']     = self.indicators['aviahorizon_roll']
                     self.basic_telemetry['pitch']    = self.indicators['aviahorizon_pitch']
@@ -223,9 +226,6 @@ class TelemInterface(object):
                         self.basic_telemetry['gearState'] = self.state['gear, %']
                     except KeyError:
                         self.basic_telemetry['gearState'] = None
-    
-                    self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
-                    self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
                     
                     self.connected = True
                     
