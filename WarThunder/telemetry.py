@@ -85,12 +85,13 @@ Example full_telemetry dict:
 
 import socket
 import requests
-
+import mapinfo
 
 IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
 URL_INDICATORS = 'http://{}:8111/indicators'.format(IP_ADDRESS)
 URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
-
+URL_COMMENTS   = 'http://{}:8111/gamechat?lastId=-1'.format(IP_ADDRESS)
+URL_EVENTS     = 'http://{}:8111/hudmsg?lastEvt=0&lastDmg=0'.format(IP_ADDRESS)
 
 def combine_dicts(to_dict, from_dict):
     '''
@@ -115,8 +116,33 @@ class TelemInterface(object):
         self.basic_telemetry = {}
         self.indicators      = {}
         self.state           = {}
+        self.map_info        = mapinfo.MapInfo()
+    
+    def get_comments(self):
+        '''
+        Description:
+        ------------
+        Query http://localhost:8111/gamechat?lastId=-1 to get a JSON of all
+        comments made in the current match
+        '''
+        
+        comments_response = requests.get(URL_COMMENTS)
+        self.comments     = comments_response.json()
+        return self.comments
+    
+    def get_events(self):
+        '''
+        Description:
+        ------------
+        Query http://localhost:8111/gamechat?lastId=-1 to get a JSON of all
+        events (i.e. when someone is damaged or destroyed) in the current match
+        '''
+        
+        events_response = requests.get(URL_EVENTS)
+        self.events     = events_response.json()
+        return self.events
 
-    def get_telemetry(self):
+    def get_telemetry(self, comments=False, events=False):
         '''
         Description:
         ------------
@@ -132,47 +158,81 @@ class TelemInterface(object):
         http://localhost:8111/state. Dictionary self.basic_telemetry holds
         the minimal amount of telmetry needed for navigation and control (see
         file docstring for more info)
+        
+        :param comments: bool - whether or not to query for match comment data
+        :param events:   bool - whether or not to query for match event data
+        
+        :return self.connected: bool - whehter or not player is in a match and
+                                       flying
         '''
         
+        self.connected       = False
         self.full_telemetry  = {}
         self.basic_telemetry = {}
 
         try:
+            self.map_info.download_files()
+            self.map_info.parse_meta()
+            
             indicator_response = requests.get(URL_INDICATORS)
             self.indicators    = indicator_response.json()
 
             state_response = requests.get(URL_STATE)
             self.state     = state_response.json()
+            
+            if comments:
+                self.get_comments()
+            else:
+                self.comments = None
+            
+            if events:
+                self.get_events()
+            else:
+                self.events = None
 
             if self.indicators['valid'] and self.state['valid']:
-                self.basic_telemetry['airframe'] = self.indicators['type']
-                self.basic_telemetry['roll']     = self.indicators['aviahorizon_roll']
-                self.basic_telemetry['pitch']    = self.indicators['aviahorizon_pitch']
-                self.basic_telemetry['heading']  = self.indicators['compass']
-                self.basic_telemetry['altitude'] = self.indicators['altitude_hour']
+                try:
+                    self.basic_telemetry['airframe'] = self.indicators['type']
+                    self.basic_telemetry['roll']     = self.indicators['aviahorizon_roll']
+                    self.basic_telemetry['pitch']    = self.indicators['aviahorizon_pitch']
+                    self.basic_telemetry['heading']  = self.indicators['compass']
+                    self.basic_telemetry['altitude'] = self.indicators['altitude_hour']
                 
-                try: 
-                    self.basic_telemetry['IAS'] = self.state['TAS, km/h']
+                    try:
+                        self.basic_telemetry['lat'] = self.map_info.player_lat
+                        self.full_telemetry['lat']  = self.map_info.player_lat
+                        self.basic_telemetry['lon'] = self.map_info.player_lon
+                        self.full_telemetry['lon']  = self.map_info.player_lon
+                    except AttributeError:
+                        self.basic_telemetry['lat'] = None
+                        self.full_telemetry['lat']  = None
+                        self.basic_telemetry['lon'] = None
+                        self.full_telemetry['lon']  = None
+                    
+                    try: 
+                        self.basic_telemetry['IAS'] = self.state['TAS, km/h']
+                    except KeyError:
+                        self.basic_telemetry['IAS'] = None
+                    
+                    try: 
+                        self.basic_telemetry['flapState'] = self.state['flaps, %']
+                    except KeyError:
+                        self.basic_telemetry['flapState'] = None
+                    
+                    try: 
+                        self.basic_telemetry['gearState'] = self.state['gear, %']
+                    except KeyError:
+                        self.basic_telemetry['gearState'] = None
+    
+                    self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
+                    self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
+                    
+                    self.connected = True
+                    
                 except KeyError:
-                    self.basic_telemetry['IAS'] = None
-                
-                try: 
-                    self.basic_telemetry['flapState'] = self.state['flaps, %']
-                except KeyError:
-                    self.basic_telemetry['flapState'] = None
-                
-                try: 
-                    self.basic_telemetry['gearState'] = self.state['gear, %']
-                except KeyError:
-                    self.basic_telemetry['gearState'] = None
-
-                self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
-                self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
-
-                self.connected = True
+                    print('In mission menu...')
             else:
                 print('Mission not currently running...')
-                self.connected = False
 
         except Exception as e:
             if 'Failed to establish a new connection' in str(e):
@@ -180,8 +240,6 @@ class TelemInterface(object):
             else:
                 import traceback
                 traceback.print_exc()
-            
-            self.connected = False
         
         return self.connected
 

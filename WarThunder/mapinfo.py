@@ -6,8 +6,8 @@ import urllib.request
 from PIL import Image, ImageDraw
 from requests import get
 from requests.exceptions import ReadTimeout, ConnectTimeout
-from math import radians, sqrt, sin, cos, atan2
-from maphash import maps
+from math import radians, degrees, sqrt, sin, asin, cos, atan2
+from maps import maps
 
 
 DEBUG = False
@@ -18,27 +18,18 @@ URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
 URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
 
 TEXTURES_PATH   = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
-EARTH_RADIUS    = 6378137 # meters
+EARTH_RADIUS    = 6378.137 # km
 REQUEST_TIMEOUT = 0.1
 
 
 def hypotenuse(a, b):
     return sqrt((a ** 2) + (b ** 2))
 
-def distance(x1, y1, x2, y2):
-    '''
-    Description:
-    ------------
-    Find the distance between two points on a cartesian plane
-    '''
-    
-    return sqrt(((y2 - y1) ** 2) + ((x2 - x1) ** 2))
-
 def coord_dist(lat_1, lon_1, lat_2, lon_2):
     '''
     Description:
     ------------
-    Find the total distance (in meters) between two lat/lon coordinates (dd)
+    Find the total distance (in km) between two lat/lon coordinates (dd)
     '''
     
     lat_1_rad = radians(lat_1)
@@ -53,7 +44,23 @@ def coord_dist(lat_1, lon_1, lat_2, lon_2):
     
     return 2 * EARTH_RADIUS * atan2(sqrt(a), sqrt(1 - a))
 
-def map_name(map_img):
+def coord_coord(lat, lon, dist, bearing):
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
+    brng  = radians(bearing)
+    lat_1 = radians(lat)
+    lon_1 = radians(lon)
+    
+    lat_2 = asin(sin(lat_1) * cos(dist / EARTH_RADIUS) + cos(lat_1) * sin(dist / EARTH_RADIUS) * cos(brng))
+    lon_2 = lon_1 + atan2(sin(brng) * sin(dist / EARTH_RADIUS) * cos(lat_1), cos(dist / EARTH_RADIUS) - sin(lat_1) * sin(lat_2))
+    
+    return (degrees(lat_2), degrees(lon_2))
+
+def get_grid_info(map_img):
     '''
     Description:
     ------------
@@ -68,6 +75,7 @@ def map_name(map_img):
     
     print('ERROR: No map found with hash {}'.format(hash_))
     return None
+
 
 class MapInfo(object):
     def __init__(self):
@@ -122,12 +130,13 @@ class MapInfo(object):
             
             self.map_img  = Image.open('map.jpg')
             self.map_draw = ImageDraw.Draw(self.map_img)
-            self.map_name = map_name(self.map_img)
+            
+            self.grid_info = get_grid_info(self.map_img)
             
             self.map_valid = True
     
         except json.decoder.JSONDecodeError:
-            print('ERROR; Waiting to join a match')
+            print('Waiting to join a match')
             
         except ReadTimeout:
             print('ERROR: ReadTimeout')
@@ -147,19 +156,45 @@ class MapInfo(object):
         Calculate values that might be useful for extra processing
         '''
         
-        self.map_total   = self.info['map_max'][0] - self.info['map_min'][0]
-        self.map_total_x = self.info['map_max'][0] - self.info['map_min'][0]
-        self.map_total_y = self.info['map_max'][1] - self.info['map_min'][1]
-        
-        self.step_qnty   = self.map_total / self.info['grid_steps'][0]
-        self.step_size   = self.map_img.width / self.step_qnty
-        self.step_offset = self.info['map_min'][0] - self.info['grid_zero'][0]
-        
-        if self.step_size == self.info['map_max'][0]:
-            # TODO: document this, it was a hack fix for the odd maps that cause scale problems
-            '''assuming duel map until found to be other'''
-            self.step_offset = 0
-            self.step_size   = 256
+        if self.map_valid:
+            self.map_total   = self.info['map_max'][0] - self.info['map_min'][1]
+            self.map_total_x = self.info['map_max'][0] - self.info['map_min'][0]
+            self.map_total_y = self.info['map_max'][1] - self.info['map_min'][1]
+            
+            self.num_tiles_x = round(self.map_total_x / self.info['grid_steps'][0])
+            self.num_tiles_y = round(self.map_total_y / self.info['grid_steps'][1])
+            self.num_tiles   = self.num_tiles_x * self.num_tiles_y
+            
+            for obj in self.obj:
+                if obj['icon'] == 'Player':
+                    self.player_x = obj['x']
+                    self.player_y = obj['y']
+                    
+                    try:
+                        self.player_dx = obj['dx']
+                        self.player_dy = obj['dy']
+                    except KeyError:
+                        self.player_dx = 0
+                        self.player_dy = 0
+                    
+                    self.player_hdg = degrees(atan2(self.player_dy,
+                                                    self.player_dx)) + 90
+                    if self.player_hdg < 0:
+                        self.player_hdg += 360
+                    
+                    if self.grid_info:
+                        dist_x  = self.player_x * self.grid_info['grids_x'] * self.grid_info['grid_width_km']
+                        dist_y  = self.player_y * self.grid_info['grids_y'] * self.grid_info['grid_width_km']
+                        dist    = hypotenuse(dist_x, dist_y)
+                        bearing = degrees(atan2(self.player_y,
+                                                self.player_x)) + 90
+                        if bearing < 0:
+                            bearing += 360
+                        
+                        (self.player_lat, self.player_lon) = coord_coord(self.grid_info['ULHC_lat'],
+                                                                         self.grid_info['ULHC_lon'],
+                                                                         dist,
+                                                                         bearing)
     
     
 
