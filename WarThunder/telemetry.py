@@ -192,6 +192,10 @@ class TelemInterface(object):
 
             if self.indicators['valid'] and self.state['valid']:
                 try:
+                    # fix odd WT sign conventions
+                    self.indicators['aviahorizon_pitch'] = -self.indicators['aviahorizon_pitch']
+                    self.indicators['aviahorizon_roll']  = -self.indicators['aviahorizon_roll']
+                    
                     self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
                     self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
                     
@@ -244,11 +248,4 @@ class TelemInterface(object):
         return self.connected
 
 
-if __name__ == '__main__':
-    import pprint
-    
-    my_telem = TelemInterface()
 
-    while True:
-        my_telem.get_telemetry()
-        pprint.pprint(my_telem.basic_telemetry)

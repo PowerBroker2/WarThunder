@@ -1,7 +1,6 @@
 import os
 import arrow
 import ntplib
-import datetime as dt
 from random import randint
 from time import sleep
 
@@ -42,13 +41,31 @@ class ACMI(object):
             raise Exception('Too many objects specified - cannot be more than {}'.format(MAX_NUM_OBJS))
         
         for obj_num in range(num_objs):
+            self.add_object()
+        
+    def add_object(self):
+        '''
+        Description:
+        ------------
+        Append a new and unique hex object ID to the self.obj_ids dict
+        
+        :return id_: str - hex ID for new object
+        '''
+        
+        id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
+        
+        # Ensure each ID is unique
+        while id_ in self.obj_ids.values():
             id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
-            
-            # Ensure each ID is unique
-            while id_ in self.obj_ids.values():
-                id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
-                
-            self.obj_ids[str(obj_num)] = id_
+        
+        try:
+            obj_num = str(int(max(self.obj_ids.keys())) + 1)
+        except ValueError:
+            obj_num = '0'
+        
+        self.obj_ids[str(obj_num)] = id_
+        
+        return id_
         
     def create(self, file_name, file_type='text/acmi/tacview', acmi_ver='2.1'):
         '''
@@ -59,10 +76,6 @@ class ACMI(object):
         :param file_name: str - full filepath or filename of ACMI file to create
         
         :return: void
-        
-        Example reference_time:
-        -----------------------
-        '2019-12-19T00:23:17.705626'
         '''
         
         self.file_name      = file_name
@@ -106,6 +119,8 @@ class ACMI(object):
         Description:
         ------------
         Find the true time to provide accurate sample timestamps
+        
+        :return: arrow datetime - current UTC time
         '''
         
         sec = int(self.utc_offset)
