@@ -85,7 +85,7 @@ Example full_telemetry dict:
 
 import socket
 import requests
-import mapinfo
+from WarThunder import mapinfo
 
 IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
 URL_INDICATORS = 'http://{}:8111/indicators'.format(IP_ADDRESS)

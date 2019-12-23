@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 from requests import get
 from requests.exceptions import ReadTimeout, ConnectTimeout
 from math import radians, degrees, sqrt, sin, asin, cos, atan2
-from maps import maps
+from WarThunder.maps import maps
 
 
 DEBUG = False
@@ -134,6 +134,9 @@ class MapInfo(object):
             self.grid_info = get_grid_info(self.map_img)
             
             self.map_valid = True
+    
+        except urllib.error.URLError:
+            print('ERROR: could not download map.jpg')
     
         except json.decoder.JSONDecodeError:
             print('Waiting to join a match')
