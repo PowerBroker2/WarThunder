@@ -1,9 +1,8 @@
 import pprint
-import general, telemetry, acmi
-from telemetry import combine_dicts
+from WarThunder import general, telemetry, acmi
+from WarThunder.telemetry import combine_dicts
 from getpass import getuser
 import datetime as dt
-import paho.mqtt.client as mqtt
 
 
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
