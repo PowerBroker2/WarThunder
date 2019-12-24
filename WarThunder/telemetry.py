@@ -87,11 +87,14 @@ import socket
 import requests
 from WarThunder import mapinfo
 
+
 IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
 URL_INDICATORS = 'http://{}:8111/indicators'.format(IP_ADDRESS)
 URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
 URL_COMMENTS   = 'http://{}:8111/gamechat?lastId=-1'.format(IP_ADDRESS)
 URL_EVENTS     = 'http://{}:8111/hudmsg?lastEvt=0&lastDmg=0'.format(IP_ADDRESS)
+FT_TO_M        = 0.3048
+
 
 def combine_dicts(to_dict, from_dict):
     '''
@@ -141,6 +144,45 @@ class TelemInterface(object):
         events_response = requests.get(URL_EVENTS)
         self.events     = events_response.json()
         return self.events
+    
+    def find_altitude(self):
+        '''
+        Description:
+        ------------
+        Finds and standardizes reported alittude to meters for all planes
+        '''
+        
+        name = self.indicators['type']
+        
+        # account for freedom units in US planes
+        if name.startswith('p-') or name.startswith('f-') or \
+           name.startswith('f2') or name.startswith('f3') or \
+           name.startswith('f4') or name.startswith('f6') or \
+           name.startswith('f7') or name.startswith('f8') or \
+           name.startswith('f9') or name.startswith('os') or \
+           name.startswith('sb') or name.startswith('tb') or \
+           name.startswith('a-') or name.startswith('pb') or \
+           name.startswith('am') or name.startswith('ad') or \
+           name.startswith('fj') or name.startswith('b-') or \
+           name.startswith('xp') or name.startswith('bt') or \
+           name.startswith('xa') or name.startswith('xf'):
+            if 'altitude_10k' in self.indicators.keys():
+                return self.indicators['altitude_10k'] * FT_TO_M
+            elif 'altitude_hour' in self.indicators.keys():
+                return self.indicators['altitude_hour'] * FT_TO_M
+            elif 'altitude_min' in self.indicators.keys():
+                return self.indicators['altitude_min'] * FT_TO_M
+            else:
+                return 0
+        else:
+            if 'altitude_10k' in self.indicators.keys():
+                return self.indicators['altitude_10k']
+            elif 'altitude_hour' in self.indicators.keys():
+                return self.indicators['altitude_hour']
+            elif 'altitude_min' in self.indicators.keys():
+                return self.indicators['altitude_min']
+            else:
+                return 0
 
     def get_telemetry(self, comments=False, events=False):
         '''
@@ -193,8 +235,17 @@ class TelemInterface(object):
             if self.indicators['valid'] and self.state['valid']:
                 try:
                     # fix odd WT sign conventions
-                    self.indicators['aviahorizon_pitch'] = -self.indicators['aviahorizon_pitch']
-                    self.indicators['aviahorizon_roll']  = -self.indicators['aviahorizon_roll']
+                    try:
+                        self.indicators['aviahorizon_pitch'] = -self.indicators['aviahorizon_pitch']
+                    except KeyError:
+                        self.indicators['aviahorizon_pitch'] = 0
+                    
+                    try:
+                        self.indicators['aviahorizon_roll']  = -self.indicators['aviahorizon_roll']
+                    except KeyError:
+                        self.indicators['aviahorizon_roll']  = 0
+                    
+                    self.indicators['alt_m'] = self.find_altitude()
                     
                     self.full_telemetry = combine_dicts(self.full_telemetry, self.indicators)
                     self.full_telemetry = combine_dicts(self.full_telemetry, self.state)
@@ -203,7 +254,7 @@ class TelemInterface(object):
                     self.basic_telemetry['roll']     = self.indicators['aviahorizon_roll']
                     self.basic_telemetry['pitch']    = self.indicators['aviahorizon_pitch']
                     self.basic_telemetry['heading']  = self.indicators['compass']
-                    self.basic_telemetry['altitude'] = self.indicators['altitude_hour']
+                    self.basic_telemetry['altitude'] = self.indicators['alt_m']
                 
                     try:
                         self.basic_telemetry['lat'] = self.map_info.player_lat

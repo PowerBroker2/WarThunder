@@ -17,9 +17,10 @@ URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
 URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
 
-TEXTURES_PATH   = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
-EARTH_RADIUS    = 6378.137 # km
-REQUEST_TIMEOUT = 0.1
+AIR_DIMENSION_KM = 65 # all air maps are 65kmx65km
+TEXTURES_PATH    = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
+EARTH_RADIUS_KM  = 6378.137
+REQUEST_TIMEOUT  = 0.1
 
 
 def hypotenuse(a, b):
@@ -42,7 +43,7 @@ def coord_dist(lat_1, lon_1, lat_2, lon_2):
     
     a = (sin(d_lat / 2) ** 2) + cos(lat_1_rad) * cos(lat_2_rad) * (sin(d_lon / 2) ** 2)
     
-    return 2 * EARTH_RADIUS * atan2(sqrt(a), sqrt(1 - a))
+    return 2 * EARTH_RADIUS_KM * atan2(sqrt(a), sqrt(1 - a))
 
 def coord_coord(lat, lon, dist, bearing):
     '''
@@ -55,8 +56,8 @@ def coord_coord(lat, lon, dist, bearing):
     lat_1 = radians(lat)
     lon_1 = radians(lon)
     
-    lat_2 = asin(sin(lat_1) * cos(dist / EARTH_RADIUS) + cos(lat_1) * sin(dist / EARTH_RADIUS) * cos(brng))
-    lon_2 = lon_1 + atan2(sin(brng) * sin(dist / EARTH_RADIUS) * cos(lat_1), cos(dist / EARTH_RADIUS) - sin(lat_1) * sin(lat_2))
+    lat_2 = asin(sin(lat_1) * cos(dist / EARTH_RADIUS_KM) + cos(lat_1) * sin(dist / EARTH_RADIUS_KM) * cos(brng))
+    lon_2 = lon_1 + atan2(sin(brng) * sin(dist / EARTH_RADIUS_KM) * cos(lat_1), cos(dist / EARTH_RADIUS_KM) - sin(lat_1) * sin(lat_2))
     
     return (degrees(lat_2), degrees(lon_2))
 
@@ -74,7 +75,9 @@ def get_grid_info(map_img):
         return maps[hash_]
     
     print('ERROR: No map found with hash {}'.format(hash_))
-    return 'UNKNOWN'
+    return {'name': 'UNKNOWN',
+            'ULHC_lat': 0.0,
+            'ULHC_lon': 0.0}
 
 
 class MapInfo(object):
@@ -160,14 +163,6 @@ class MapInfo(object):
         '''
         
         if self.map_valid:
-            self.map_total   = self.info['map_max'][0] - self.info['map_min'][1]
-            self.map_total_x = self.info['map_max'][0] - self.info['map_min'][0]
-            self.map_total_y = self.info['map_max'][1] - self.info['map_min'][1]
-            
-            self.num_tiles_x = round(self.map_total_x / self.info['grid_steps'][0])
-            self.num_tiles_y = round(self.map_total_y / self.info['grid_steps'][1])
-            self.num_tiles   = self.num_tiles_x * self.num_tiles_y
-            
             for obj in self.obj:
                 if obj['icon'] == 'Player':
                     self.player_x = obj['x']
@@ -186,8 +181,8 @@ class MapInfo(object):
                         self.player_hdg += 360
                     
                     if self.grid_info:
-                        dist_x  = self.player_x * self.grid_info['grids_x'] * self.grid_info['grid_width_km']
-                        dist_y  = self.player_y * self.grid_info['grids_y'] * self.grid_info['grid_width_km']
+                        dist_x  = self.player_x * AIR_DIMENSION_KM
+                        dist_y  = self.player_y * AIR_DIMENSION_KM
                         dist    = hypotenuse(dist_x, dist_y)
                         bearing = degrees(atan2(self.player_y,
                                                 self.player_x)) + 90
@@ -198,6 +193,7 @@ class MapInfo(object):
                                                                          self.grid_info['ULHC_lon'],
                                                                          dist,
                                                                          bearing)
+                        
     
     
 
