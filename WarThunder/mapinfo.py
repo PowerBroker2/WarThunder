@@ -49,7 +49,8 @@ def coord_coord(lat, lon, dist, bearing):
     '''
     Description:
     ------------
-    TODO
+    Finds the lat/lon coordinates "dist" km away from the given "lat" and "lon"
+    coordinate along the given compass "bearing"
     '''
     
     brng  = radians(bearing)
@@ -162,9 +163,13 @@ class MapInfo(object):
         Calculate values that might be useful for extra processing
         '''
         
+        self.player_found = False
+        
         if self.map_valid:
             for obj in self.obj:
                 if obj['icon'] == 'Player':
+                    self.player_found = True
+                    
                     self.player_x = obj['x']
                     self.player_y = obj['y']
                     
