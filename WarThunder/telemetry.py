@@ -1,5 +1,85 @@
 '''
-Python3 module to query and access telemetry data during War Thunder "Air Battles" matches
+Python3 module/script to query and access telemetry data during War Thunder "Air Battles" matches
+
+NOTE: THIS DOES NOT WORK WITH TANK OR SHIP BATTLES
+
+Example basic_telemetry dict:
+    {'IAS': 2,
+     'airframe': 'p-51d-5',
+     'altitude': -475.12204,
+     'flapState': 0,
+     'gearState': 0,
+     'heading': 98.789597,
+     'pitch': 81.356125,
+     'roll': 27.817101}
+
+Example full_telemetry dict:
+    {'AoA, deg': 26.5,
+     'AoS, deg': 38.8,
+     'H, m': -59,
+     'IAS, km/h': 2,
+     'M': 0.0,
+     'Mfuel, kg': 2,
+     'Mfuel0, kg': 734,
+     'Ny': 4.25,
+     'RPM 1': 0,
+     'RPM throttle 1, %': 0,
+     'TAS, km/h': 1,
+     'Vy, m/s': -0.3,
+     'Wx, deg/s': 2,
+     'aileron, %': 0,
+     'altitude_10k': -193.246521,
+     'altitude_hour': -193.246521,
+     'altitude_min': -193.246521,
+     'aviahorizon_pitch': 67.419807,
+     'aviahorizon_roll': 9.448232,
+     'bank': -8.0,
+     'carb_temperature': 0.0,
+     'clock_hour': 8.3,
+     'clock_min': 18.0,
+     'clock_sec': 47.0,
+     'compass': 89.343414,
+     'compass1': 89.343414,
+     'efficiency 1, %': 0,
+     'elevator, %': 0,
+     'flaps': 0.0,
+     'flaps, %': 0,
+     'fuel1': 1.9,
+     'fuel2': 0.0,
+     'fuel_pressure': 0.0,
+     'gear, %': 0,
+     'gears': 0.0,
+     'gears_lamp': 1.0,
+     'magneto 1': 0,
+     'manifold pressure 1, atm': 1.01,
+     'manifold_pressure': 1.007005,
+     'mixture': 0.833333,
+     'oil temp 1, C': 66,
+     'oil_pressure': 65.620697,
+     'oil_temperature': 65.620697,
+     'pedals1': 0.0,
+     'pedals2': 0.0,
+     'pedals3': 0.0,
+     'pedals4': 0.0,
+     'pitch 1, deg': 65.0,
+     'power 1, hp': 0.0,
+     'prop_pitch': 0.0,
+     'radiator 1, %': 0,
+     'rpm': 0.0,
+     'rudder, %': 0,
+     'speed': 0.309342,
+     'stick_ailerons': 0.0,
+     'stick_elevator': -1.0,
+     'throttle': 0.0,
+     'throttle 1, %': 0,
+     'thrust 1, kgs': 0,
+     'turn': 0.061294,
+     'type': 'p-51d-5',
+     'valid': True,
+     'vario': -0.325393,
+     'water temp 1, C': 92,
+     'water_temperature': 92.17804,
+     'weapon1': 0.0}
 '''
 
 
@@ -11,8 +91,8 @@ from WarThunder import mapinfo
 IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
 URL_INDICATORS = 'http://{}:8111/indicators'.format(IP_ADDRESS)
 URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
-URL_COMMENTS   = 'http://{}:8111/gamechat?lastId=-1'.format(IP_ADDRESS)
-URL_EVENTS     = 'http://{}:8111/hudmsg?lastEvt=0&lastDmg=0'.format(IP_ADDRESS)
+URL_COMMENTS   = 'http://{}:8111/gamechat?lastId={}'
+URL_EVENTS     = 'http://{}:8111/hudmsg?lastEvt=-1&lastDmg={}'
 FT_TO_M        = 0.3048
 
 
@@ -40,6 +120,10 @@ class TelemInterface(object):
         self.indicators      = {}
         self.state           = {}
         self.map_info        = mapinfo.MapInfo()
+        self.last_event_ID   = 0
+        self.last_comment_ID = 0
+        self.comments        = []
+        self.events          = {}
     
     def get_comments(self):
         '''
@@ -49,20 +133,23 @@ class TelemInterface(object):
         comments made in the current match
         '''
         
-        comments_response = requests.get(URL_COMMENTS)
-        self.comments     = comments_response.json()
+        comments_response = requests.get(URL_COMMENTS.format(IP_ADDRESS, self.last_comment_ID))
+        self.comments.extend(comments_response.json())
+        self.last_comment_ID = max([comment['id'] for comment in self.comments])
         return self.comments
     
     def get_events(self):
         '''
         Description:
         ------------
-        Query http://localhost:8111/gamechat?lastId=-1 to get a JSON of all
-        events (i.e. when someone is damaged or destroyed) in the current match
+        Query http://localhost:8111/hudmsg?lastEvt=-1&lastDmg=-1 to get a JSON
+        of all events (i.e. when someone is damaged or destroyed) in the
+        current match
         '''
         
-        events_response = requests.get(URL_EVENTS)
-        self.events     = events_response.json()
+        events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event))
+        self.events        = combine_dicts(self.events, events_response.json())
+        self.last_event_ID = max([event['id'] for event in self.events['damage']])
         return self.events
     
     def find_altitude(self):
