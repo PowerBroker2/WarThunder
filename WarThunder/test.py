@@ -1,6 +1,6 @@
 import pprint
-from WarThunder import general, telemetry, acmi
-from WarThunder.telemetry import combine_dicts
+import general, telemetry, acmi
+from telemetry import combine_dicts
 from getpass import getuser
 import datetime as dt
 
