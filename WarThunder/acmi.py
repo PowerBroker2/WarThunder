@@ -143,8 +143,7 @@ class ACMI(object):
         if not type(header_content) == dict:
             raise TypeError('"header_content" must be of type dict, not {}'.format(type(header_content)))
         
-        header_list = ['0,{}={}'.format(key, header_content[key]) for key in header_content.keys()]
-        header = '\n'.join(header_list) + '\n'
+        header = self.format_user_header(header_content)
         
         try:
             with open(self.file_name, 'a') as log:
@@ -154,6 +153,24 @@ class ACMI(object):
         except FileNotFoundError:
             print('ERROR - ACMI file not found')
             return False
+    
+    def format_user_header(self, header_content: dict):
+        '''
+        Description:
+        ------------
+        Create an ACMI file header with user defined fields/values (does not
+        include mandatory header fields)
+        
+        :param header_content: dict - header property names and values
+        
+        :return: str - formatted header string
+        '''
+        
+        if not type(header_content) == dict:
+            raise TypeError('"header_content" must be of type dict, not {}'.format(type(header_content)))
+        
+        header_list = ['0,{}={}'.format(key, header_content[key]) for key in header_content.keys()]
+        return '\n'.join(header_list) + '\n'
     
     def insert_entry(self, obj_num, data: dict, timestamp=True):
         '''
@@ -171,6 +188,33 @@ class ACMI(object):
         if not type(data) == dict:
             raise TypeError('"data" must be of type dict, not {}'.format(type(data)))
         
+        entry = self.format_entry(obj_num, data, timestamp)
+        
+        try:
+            with open(self.file_name, 'a') as log:
+                log.write(entry)
+            return True
+        
+        except FileNotFoundError:
+            print('ERROR - ACMI file not found')
+            return False
+    
+    def format_entry(self, obj_num, data: dict, timestamp=True):
+        '''
+        Description:
+        ------------
+        Create a single entry of telemetry for a given object
+        
+        :param obj_num: int  - object number as represented in the ID-lookup
+                               dictionary self.obj_ids
+        :param data:    dict - object information to be included in the new entry
+        
+        :return: str - formatted entry string
+        '''
+        
+        if not type(data) == dict:
+            raise TypeError('"data" must be of type dict, not {}'.format(type(data)))
+        
         if timestamp:
             current_time = self.get_timestamp()
             diff_sec     = (current_time - self.reference_time).total_seconds()
@@ -181,14 +225,7 @@ class ACMI(object):
         entry += ','.join('{}={}'.format(name, data[name]).replace(',', '\,') for name in data.keys())
         entry += '\n'
         
-        try:
-            with open(self.file_name, 'a') as log:
-                log.write(entry)
-            return True
-        
-        except FileNotFoundError:
-            print('ERROR - ACMI file not found')
-            return False
+        return entry
     
     
     
