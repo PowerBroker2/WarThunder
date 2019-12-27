@@ -16,6 +16,11 @@ URL_STATE      = 'http://{}:8111/state'.format(IP_ADDRESS)
 URL_COMMENTS   = 'http://{}:8111/gamechat?lastId={}'
 URL_EVENTS     = 'http://{}:8111/hudmsg?lastEvt=-1&lastDmg={}'
 FT_TO_M        = 0.3048
+IN_FLIGHT      = 0
+IN_MENU        = -1
+NO_MISSION     = -2
+WT_NOT_RUNNING = -3
+OTHER_ERROR    = -4
 
 
 def combine_dicts(to_dict, from_dict):
@@ -46,6 +51,7 @@ class TelemInterface(object):
         self.last_comment_ID = 0
         self.comments        = []
         self.events          = {}
+        self.status          = WT_NOT_RUNNING
     
     def get_comments(self):
         '''
@@ -212,18 +218,20 @@ class TelemInterface(object):
                         self.basic_telemetry['gearState'] = None
                     
                     self.connected = True
+                    self.status    = IN_FLIGHT
                     
                 except KeyError:
-                    print('In mission menu...')
+                    self.status = IN_MENU
             else:
-                print('Mission not currently running...')
+                self.status = NO_MISSION
 
         except Exception as e:
             if 'Failed to establish a new connection' in str(e):
-                print('War Thunder not running...')
+                self.status = WT_NOT_RUNNING
             else:
                 import traceback
                 traceback.print_exc()
+                self.status = OTHER_ERROR
         
         return self.connected
 
