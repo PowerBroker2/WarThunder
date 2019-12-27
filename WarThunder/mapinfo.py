@@ -75,7 +75,6 @@ def get_grid_info(map_img):
     if hash_ in maps.keys():
         return maps[hash_]
     
-    print('ERROR: No map found with hash {}'.format(hash_))
     return {'name': 'UNKNOWN',
             'ULHC_lat': 0.0,
             'ULHC_lon': 0.0}
