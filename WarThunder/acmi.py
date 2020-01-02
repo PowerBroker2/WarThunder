@@ -1,8 +1,7 @@
 import os
-import arrow
 import ntplib
 from random import randint
-from time import sleep
+import datetime as dt
 
 
 MAX_NUM_OBJS     = 0xFFFFFFFFFFFFFFFE
@@ -33,9 +32,6 @@ class ACMI(object):
         
         self.obj_ids = {}
         self.ntp     = ntplib.NTPClient()
-        
-        while not self.get_offset():
-            sleep(1)
         
         if num_objs > MAX_NUM_OBJS:
             raise Exception('Too many objects specified - cannot be more than {}'.format(MAX_NUM_OBJS))
@@ -92,27 +88,7 @@ class ACMI(object):
         with open(self.file_name, 'w') as log:
             log.write(header_mandatory.format(filetype=file_type,
                                               acmiver=acmi_ver,
-                                              reftime=str(self.get_timestamp()).split('+')[0]))
-
-    def get_offset(self):
-        '''
-        Description:
-        ------------
-        Find the difference between machine and NTP time
-        
-        :return: float - difference (in seconds) between machine and NTP time
-        '''
-        
-        try:
-            r = self.ntp.request('pool.ntp.org')
-        except ntplib.NTPException:
-            import traceback
-            traceback.print_exc()
-            return False
-        
-        self.utc_offset = (r.recv_time - r.orig_time + r.tx_time - r.dest_time) / 2
-        
-        return self.utc_offset
+                                              reftime=self.get_timestamp().isoformat()))
     
     def get_timestamp(self):
         '''
@@ -120,13 +96,10 @@ class ACMI(object):
         ------------
         Find the true time to provide accurate sample timestamps
         
-        :return: arrow datetime - current UTC time
+        :return: datetime - current UTC time
         '''
         
-        sec = int(self.utc_offset)
-        us  = int((1 % self.utc_offset) * 1000000)
-        
-        return arrow.utcnow().shift(seconds=sec, microseconds=us)
+        return dt.datetime.utcnow()
 
     def insert_user_header(self, header_content: dict):
         '''
