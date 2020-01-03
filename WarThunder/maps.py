@@ -35,8 +35,8 @@ maps = {'0707937f153ccc5d': {'name': 'Kursk',
                              'ULHC_lat': 0.0,
                              'ULHC_lon': 0.0},
         'b070e0e0c0c1cf9f': {'name': 'Kuban',
-                             'ULHC_lat': 45.04056357844995, #
-                             'ULHC_lon': -38.15663550630323},
+                             'ULHC_lat': 45.04056357844995,
+                             'ULHC_lon': 38.15663550630323},
         '7d0d0c31b3030301': {'name': 'Mozdoc',
                              'ULHC_lat': 43.74723024511662, #
                              'ULHC_lon': -45.530795428447014},
