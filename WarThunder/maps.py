@@ -1,6 +1,6 @@
 maps = {'0707937f153ccc5d': {'name': 'Kursk',
                              'ULHC_lat': 51.16278580067218,
-                             'ULHC_lon': -36.906235369488115},
+                             'ULHC_lon': 36.906235369488115},
         '000000c0f0ffffff': {'name': 'Second_Battle_of_El_Alamein',
                              'ULHC_lat': 30.462785800672183,
                              'ULHC_lon': 27.37730048853951},
