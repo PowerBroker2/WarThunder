@@ -5,6 +5,9 @@ These libraries make use of War Thunder's localhost server pages (http://localho
 
 The data can then be easily used for any custom application (i.e. telemetry datalogger and grapher).
 
+# To Install
+`pip install WarThunder`
+
 # Example Python Script
 ```python
 from pprint import pprint
