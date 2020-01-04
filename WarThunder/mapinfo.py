@@ -1,9 +1,10 @@
-import json
 import imagehash
 import socket
-import urllib.request
-from PIL import Image, ImageDraw
 from requests import get
+from PIL import Image, ImageDraw
+from json.decoder import JSONDecodeError
+from urllib.error import URLError
+from urllib.request import urlretrieve
 from requests.exceptions import ReadTimeout, ConnectTimeout
 from math import radians, degrees, sqrt, sin, asin, cos, atan2
 from WarThunder.maps import maps
@@ -122,7 +123,7 @@ class MapInfo(object):
         self.map_valid = False
         
         try:
-            urllib.request.urlretrieve(URL_MAP_IMG, 'map.jpg')
+            urlretrieve(URL_MAP_IMG, 'map.jpg')
             self.info = get(URL_MAP_INFO, timeout=REQUEST_TIMEOUT).json()
             self.obj  = get(URL_MAP_OBJ,  timeout=REQUEST_TIMEOUT).json()
             
@@ -133,10 +134,10 @@ class MapInfo(object):
             
             self.map_valid = True
     
-        except urllib.error.URLError:
+        except URLError:
             print('ERROR: could not download map.jpg')
     
-        except (OSError, json.decoder.JSONDecodeError):
+        except (OSError, JSONDecodeError):
             print('Waiting to join a match')
             
         except ReadTimeout:
