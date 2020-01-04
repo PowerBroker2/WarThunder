@@ -139,7 +139,7 @@ class MapInfo(object):
         except urllib.error.URLError:
             print('ERROR: could not download map.jpg')
     
-        except json.decoder.JSONDecodeError:
+        except (OSError, json.decoder.JSONDecodeError):
             print('Waiting to join a match')
             
         except ReadTimeout:
@@ -147,9 +147,6 @@ class MapInfo(object):
             
         except ConnectTimeout:
             print('ERROR: ConnectTimeout')
-        
-        except FileNotFoundError:
-            print('ERROR: map.jpg not found')
             
         return self.map_valid
     
