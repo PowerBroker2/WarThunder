@@ -1,4 +1,3 @@
-import os
 import json
 import imagehash
 import socket
@@ -14,8 +13,6 @@ IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
 URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
 URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
-
-TEXTURES_PATH    = os.environ['APPDATA'] + r'\Tacview\Data\Terrain\Textures'
 EARTH_RADIUS_KM  = 6378.137
 REQUEST_TIMEOUT  = 0.1
 
