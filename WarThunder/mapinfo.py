@@ -1,5 +1,6 @@
-import imagehash
+import os
 import socket
+import imagehash
 from requests import get
 from PIL import Image, ImageDraw
 from json.decoder import JSONDecodeError
@@ -10,6 +11,8 @@ from math import radians, degrees, sqrt, sin, asin, cos, atan2
 from WarThunder.maps import maps
 
 
+LOCAL_PATH   = os.path.dirname(os.path.realpath(__file__))
+MAP_PATH     = os.path.join(LOCAL_PATH, 'map.jpg')
 IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
 URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
@@ -123,11 +126,11 @@ class MapInfo(object):
         self.map_valid = False
         
         try:
-            urlretrieve(URL_MAP_IMG, 'map.jpg')
+            urlretrieve(URL_MAP_IMG, MAP_PATH)
             self.info = get(URL_MAP_INFO, timeout=REQUEST_TIMEOUT).json()
             self.obj  = get(URL_MAP_OBJ,  timeout=REQUEST_TIMEOUT).json()
             
-            self.map_img  = Image.open('map.jpg')
+            self.map_img  = Image.open(MAP_PATH)
             self.map_draw = ImageDraw.Draw(self.map_img)
             
             self.grid_info = get_grid_info(self.map_img)
@@ -139,6 +142,8 @@ class MapInfo(object):
     
         except (OSError, JSONDecodeError):
             print('Waiting to join a match')
+            import traceback
+            traceback.print_exc()
             
         except ReadTimeout:
             print('ERROR: ReadTimeout')
