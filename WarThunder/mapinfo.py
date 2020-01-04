@@ -10,8 +10,6 @@ from math import radians, degrees, sqrt, sin, asin, cos, atan2
 from WarThunder.maps import maps
 
 
-DEBUG = False
-
 IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
 URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
