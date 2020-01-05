@@ -222,4 +222,8 @@ maps = {'0707937f153ccc5d': {'name': 'Kursk',
                              'ULHC_lat': 19.590322302910888,
                              'ULHC_lon': 166.3231558227364,
                              'size_km' : 65},
+        'f7fff9f8d8c08000': {'name': 'Wake_Island',
+                             'ULHC_lat': 19.590322302910888,
+                             'ULHC_lon': 166.3231558227364,
+                             'size_km' : 65},
 }
