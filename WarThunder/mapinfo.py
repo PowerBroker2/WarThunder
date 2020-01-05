@@ -142,8 +142,6 @@ class MapInfo(object):
     
         except (OSError, JSONDecodeError):
             print('Waiting to join a match')
-            import traceback
-            traceback.print_exc()
             
         except ReadTimeout:
             print('ERROR: ReadTimeout')
