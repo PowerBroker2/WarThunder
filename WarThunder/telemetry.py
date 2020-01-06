@@ -191,16 +191,10 @@ class TelemInterface(object):
                     self.basic_telemetry['heading']  = self.indicators['compass']
                     self.basic_telemetry['altitude'] = self.indicators['alt_m']
                 
-                    try:
-                        self.basic_telemetry['lat'] = self.map_info.player_lat
-                        self.full_telemetry['lat']  = self.map_info.player_lat
-                        self.basic_telemetry['lon'] = self.map_info.player_lon
-                        self.full_telemetry['lon']  = self.map_info.player_lon
-                    except AttributeError:
-                        self.basic_telemetry['lat'] = None
-                        self.full_telemetry['lat']  = None
-                        self.basic_telemetry['lon'] = None
-                        self.full_telemetry['lon']  = None
+                    self.basic_telemetry['lat'] = self.map_info.player_lat
+                    self.full_telemetry['lat']  = self.map_info.player_lat
+                    self.basic_telemetry['lon'] = self.map_info.player_lon
+                    self.full_telemetry['lon']  = self.map_info.player_lon
                     
                     try: 
                         self.basic_telemetry['IAS'] = self.state['TAS, km/h']
@@ -220,7 +214,7 @@ class TelemInterface(object):
                     self.connected = True
                     self.status    = IN_FLIGHT
                     
-                except KeyError:
+                except (KeyError, AttributeError):
                     self.status = IN_MENU
             else:
                 self.status = NO_MISSION
