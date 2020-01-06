@@ -17,6 +17,7 @@ IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
 URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
 URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
+MAX_HAMMING_DIST = 3
 EARTH_RADIUS_KM  = 6378.137
 REQUEST_TIMEOUT  = 0.1
 
@@ -69,9 +70,16 @@ def get_grid_info(map_img):
     '''
     
     hash_ = str(imagehash.average_hash(map_img))
+    hamming_dists = []
     
-    if hash_ in maps.keys():
-        return maps[hash_]
+    for map_hash in maps.keys():
+        hamming_dists.append((len([index for index in range(len(hash_)) if not hash_[index] == map_hash[index]]), map_hash))
+        
+        
+    match = min(hamming_dists)
+    
+    if match[0] <= MAX_HAMMING_DIST:
+        return maps[match[1]]
     
     return {'name': 'UNKNOWN',
             'ULHC_lat': 0.0,
