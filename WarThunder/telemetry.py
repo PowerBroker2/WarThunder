@@ -21,6 +21,10 @@ IN_MENU        = -1
 NO_MISSION     = -2
 WT_NOT_RUNNING = -3
 OTHER_ERROR    = -4
+METRICS_PLANES = ['p-', 'f-', 'f2', 'f3', 'f4', 'f6', 'f7', 'f8', 'f9', 'os',
+                  'sb', 'tb', 'a-', 'pb', 'am', 'ad', 'fj', 'b-', 'xp', 'bt',
+                  'xa', 'xf', 'sp', 'hu', 'ty', 'fi', 'gl', 'ni', 'fu', 'fu',
+                  'se', 'bl', 'be', 'su', 'te', 'st', 'mo', 'we', 'ha']
 
 
 def combine_dicts(to_dict, from_dict):
@@ -89,18 +93,8 @@ class TelemInterface(object):
         
         name = self.indicators['type']
         
-        # account for freedom units in US planes
-        if name.startswith('p-') or name.startswith('f-') or \
-           name.startswith('f2') or name.startswith('f3') or \
-           name.startswith('f4') or name.startswith('f6') or \
-           name.startswith('f7') or name.startswith('f8') or \
-           name.startswith('f9') or name.startswith('os') or \
-           name.startswith('sb') or name.startswith('tb') or \
-           name.startswith('a-') or name.startswith('pb') or \
-           name.startswith('am') or name.startswith('ad') or \
-           name.startswith('fj') or name.startswith('b-') or \
-           name.startswith('xp') or name.startswith('bt') or \
-           name.startswith('xa') or name.startswith('xf'):
+        # account for freedom units in US and UK planes
+        if name[:2] in METRICS_PLANES:
             if 'altitude_10k' in self.indicators.keys():
                 return self.indicators['altitude_10k'] * FT_TO_M
             elif 'altitude_hour' in self.indicators.keys():
