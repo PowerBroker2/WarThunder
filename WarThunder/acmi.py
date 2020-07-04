@@ -1,5 +1,4 @@
 import os
-import ntplib
 from random import randint
 import datetime as dt
 
@@ -31,7 +30,6 @@ class ACMI(object):
         '''
         
         self.obj_ids = {}
-        self.ntp     = ntplib.NTPClient()
         
         if num_objs > MAX_NUM_OBJS:
             raise Exception('Too many objects specified - cannot be more than {}'.format(MAX_NUM_OBJS))
