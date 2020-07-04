@@ -3,12 +3,13 @@ from setuptools import setup
 setup(
     name             = 'WarThunder',
     packages         = ['WarThunder'],
-    version          = '2.1.10',
+    version          = '2.1.11',
     description      = 'Python package used to access air vehicle telemetry while in War Thunder air battles',
     author           = 'Power_Broker',
     author_email     = 'gitstuff2@gmail.com',
     url              = 'https://github.com/PowerBroker2/WarThunder',
-    download_url     = 'https://github.com/PowerBroker2/WarThunder/archive/2.1.10.tar.gz',
+    download_url     = 'https://github.com/PowerBroker2/WarThunder/archive/2.1.11.tar.gz',
     keywords         = ['War Thunder'],
     classifiers      = [],
+    install_requires = ['imagehash', 'requests', 'Pillow', 'WarThunder']
 )
