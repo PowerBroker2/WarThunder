@@ -17,7 +17,7 @@ IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
 URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
 URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
 URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
-ENEMY_HEX_COLOR  = '#f40C00'
+ENEMY_HEX_COLORS = ['#f40C00', '#ff0D00']
 MAX_HAMMING_DIST = 3
 EARTH_RADIUS_KM  = 6378.137
 REQUEST_TIMEOUT  = 0.1
@@ -25,6 +25,22 @@ REQUEST_TIMEOUT  = 0.1
 
 def hypotenuse(a, b):
     return sqrt((a ** 2) + (b ** 2))
+
+def coord_bearing(lat_1, lon_1, lat_2, lon_2):
+    '''
+    Description:
+    ------------
+    Find the bearing (in degrees) between two lat/lon coordinates (dd)
+    '''
+    
+    deltaLon_r = radians(lon_2 - lon_1)
+    lat_1_r = radians(lat_1)
+    lat_2_r = radians(lat_2)
+
+    x = cos(lat_2_r) * sin(deltaLon_r)
+    y = cos(lat_1_r) * sin(lat_2_r) - sin(lat_1_r) * cos(lat_2_r) * cos(deltaLon_r)
+
+    return (degrees(atan2(x, y)) + 360) % 360
 
 def coord_dist(lat_1, lon_1, lat_2, lon_2):
     '''
@@ -103,6 +119,7 @@ class map_obj(object):
         self.position_ll  = [0, 0] # NOT for airfield
         self.south_end_ll = [0, 0] # ONLY for airfield
         self.east_end_ll  = [0, 0] # ONLY for airfield
+        self.runway_dir   = 0 # ONLY for airfield
         
         self.hdg = 0 # ONLY for planes (maybe ground vehicles while on the move?)
         
@@ -120,7 +137,7 @@ class map_obj(object):
         self.icon = map_obj_entry['icon']
         self.hex_color = map_obj_entry['color']
         
-        if self.hex_color == ENEMY_HEX_COLOR:
+        if self.hex_color in ENEMY_HEX_COLORS:
             self.friendly = False
         else:
             self.friendly = True
@@ -133,8 +150,7 @@ class map_obj(object):
         try:
             self.position_delta = [map_obj_entry['dx'], map_obj_entry['dy']]
             
-            self.hdg = degrees(atan2(self.position_delta[1],
-                                     self.position_delta[0])) + 90
+            self.hdg = degrees(atan2(*self.position_delta)) + 90
                     
             if self.hdg < 0:
                 self.hdg += 360
@@ -146,25 +162,26 @@ class map_obj(object):
             self.south_end = [map_obj_entry['sx'], map_obj_entry['sy']]
             self.east_end  = [map_obj_entry['ex'], map_obj_entry['ey']]
             
-            self.south_end_ll = self.find_obj_coords(self.south_end[0],
-                                                self.south_end[1], 
-                                                map_size,
-                                                ULHC_lat,
-                                                ULHC_lon)
-            self.east_end_ll = self.find_obj_coords(self.east_end[0],
-                                               self.east_end[1], 
-                                               map_size,
-                                               ULHC_lat,
-                                               ULHC_lon)
+            self.south_end_ll = self.find_obj_coords(*self.south_end,
+                                                     map_size,
+                                                     ULHC_lat,
+                                                     ULHC_lon)
+            self.east_end_ll = self.find_obj_coords(*self.east_end,
+                                                    map_size,
+                                                    ULHC_lat,
+                                                    ULHC_lon)
+            self.runway_dir = coord_bearing(*self.south_end_ll,
+                                            *self.east_end_ll)
         except KeyError:
             self.south_end = [0, 0]
             self.east_end  = [0, 0]
             
             self.south_end_ll = [0, 0]
             self.east_end_ll  = [0, 0]
+            
+            self.runway_dir = 0
         
-        self.position_ll = self.find_obj_coords(self.position[0],
-                                                self.position[1], 
+        self.position_ll = self.find_obj_coords(*self.position,
                                                 map_size,
                                                 ULHC_lat,
                                                 ULHC_lon)
