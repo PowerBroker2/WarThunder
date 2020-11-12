@@ -103,6 +103,23 @@ def get_grid_info(map_img):
             'ULHC_lon': 0.0,
             'size_km' : 65}
 
+def find_obj_coords(x, y, map_size, ULHC_lat, ULHC_lon):
+    '''
+    Description:
+    ------------
+    Convert the provided x/y coordinate to lat/lon
+    '''
+    
+    dist_x  = x * map_size
+    dist_y  = y * map_size
+    dist    = hypotenuse(dist_x, dist_y)
+    bearing = degrees(atan2(y, x)) + 90
+    
+    if bearing < 0:
+        bearing += 360
+    
+    return coord_coord(ULHC_lat, ULHC_lon, dist, bearing)
+
 
 class map_obj(object):
     def __init__(self, map_obj_entry=None, map_size=None, ULHC_lat=None, ULHC_lon=None):
@@ -162,14 +179,14 @@ class map_obj(object):
             self.south_end = [map_obj_entry['sx'], map_obj_entry['sy']]
             self.east_end  = [map_obj_entry['ex'], map_obj_entry['ey']]
             
-            self.south_end_ll = self.find_obj_coords(*self.south_end,
-                                                     map_size,
-                                                     ULHC_lat,
-                                                     ULHC_lon)
-            self.east_end_ll = self.find_obj_coords(*self.east_end,
-                                                    map_size,
-                                                    ULHC_lat,
-                                                    ULHC_lon)
+            self.south_end_ll = find_obj_coords(*self.south_end,
+                                                map_size,
+                                                ULHC_lat,
+                                                ULHC_lon)
+            self.east_end_ll = find_obj_coords(*self.east_end,
+                                               map_size,
+                                               ULHC_lat,
+                                               ULHC_lon)
             self.runway_dir = coord_bearing(*self.south_end_ll,
                                             *self.east_end_ll)
         except KeyError:
@@ -181,27 +198,10 @@ class map_obj(object):
             
             self.runway_dir = 0
         
-        self.position_ll = self.find_obj_coords(*self.position,
-                                                map_size,
-                                                ULHC_lat,
-                                                ULHC_lon)
-
-    def find_obj_coords(self, x, y, map_size, ULHC_lat, ULHC_lon):
-        '''
-        Description:
-        ------------
-        Convert the provided x/y coordinate to lat/lon
-        '''
-        
-        dist_x  = x * map_size
-        dist_y  = y * map_size
-        dist    = hypotenuse(dist_x, dist_y)
-        bearing = degrees(atan2(y, x)) + 90
-        
-        if bearing < 0:
-            bearing += 360
-        
-        return coord_coord(ULHC_lat, ULHC_lon, dist, bearing)
+        self.position_ll = find_obj_coords(*self.position,
+                                           map_size,
+                                           ULHC_lat,
+                                           ULHC_lon)
 
 
 class MapInfo(object):
