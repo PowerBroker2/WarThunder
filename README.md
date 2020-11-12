@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/WarThunder.svg)](https://badge.fury.io/py/WarThunder)
+
 # Overview
 Python package to access vehicle telemetry and match data in real-time while in War Thunder air battles (NOT tanks). Here are some things you can access/do with this package:
 - Get telemetry information on your vehicle and others identified on user's mini map
