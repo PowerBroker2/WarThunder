@@ -18,7 +18,7 @@ Python package to access vehicle telemetry and match data in real-time while in 
   - Object's type (fighter, bomber, heavy tank, etc)
 - Map name
 - Chat comments (anything typed into chat)
-- Match events (i.e. death/crash)
+- Match events (death, crash, etc)
 - Log data in an [ACMI format](https://www.tacview.net/documentation/acmi/en/) compatible with [Tacview](https://www.tacview.net/)
 
 # To Install
