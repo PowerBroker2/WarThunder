@@ -1,9 +1,11 @@
 import os
 import socket
 import imagehash
+from time import sleep
 from requests import get
 from PIL import Image, ImageDraw
 from json.decoder import JSONDecodeError
+from simplejson.errors import JSONDecodeError as simpleJSONDecodeError
 from urllib.error import URLError
 from urllib.request import urlretrieve
 from requests.exceptions import ReadTimeout, ConnectTimeout
@@ -266,8 +268,9 @@ class MapInfo(object):
         except URLError:
             print('ERROR: could not download map.jpg')
     
-        except (OSError, JSONDecodeError):
+        except (OSError, JSONDecodeError, simpleJSONDecodeError):
             print('Waiting to join a match')
+            sleep(1)
             
         except ReadTimeout:
             print('ERROR: ReadTimeout')
