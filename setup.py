@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name             = 'WarThunder',
     packages         = ['WarThunder'],
-    version          = '2.2.2',
+    version          = '2.2.3',
     description      = 'Python package used to access air vehicle telemetry while in War Thunder air battles',
     long_description = long_description,
     long_description_content_type = "text/markdown",
