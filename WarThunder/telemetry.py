@@ -67,7 +67,8 @@ class TelemInterface(object):
         
         comments_response = requests.get(URL_COMMENTS.format(IP_ADDRESS, self.last_comment_ID))
         self.comments.extend(comments_response.json())
-        self.last_comment_ID = max([comment['id'] for comment in self.comments])
+        if self.comments:
+            self.last_comment_ID = max([comment['id'] for comment in self.comments])
         return self.comments
     
     def get_events(self):
@@ -79,7 +80,7 @@ class TelemInterface(object):
         current match
         '''
         
-        events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event))
+        events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID))
         self.events        = combine_dicts(self.events, events_response.json())
         self.last_event_ID = max([event['id'] for event in self.events['damage']])
         return self.events
@@ -154,12 +155,12 @@ class TelemInterface(object):
             if comments:
                 self.get_comments()
             else:
-                self.comments = None
+                self.comments = []
             
             if events:
                 self.get_events()
             else:
-                self.events = None
+                self.events = {}
 
             if self.indicators['valid'] and self.state['valid']:
                 try:
