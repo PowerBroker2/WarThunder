@@ -72,6 +72,33 @@ def find_all_AAAs():
     print('------------------------------------------------------')
     find_AAAs(True)
     find_AAAs(False)
+    
+def find_basic_telemetry():
+    print('------------------------------------------------------')
+    print('Basic Telemetry:')
+    pprint(telem.basic_telemetry)
+    
+def find_comments():
+    print('------------------------------------------------------')
+    print('Comments:')
+    comments = telem.get_comments()
+    
+    if comments:
+        pprint(comments)
+    else:
+        print('\tNone')
+    print('')
+    
+def find_events():
+    print('------------------------------------------------------')
+    print('Events:')
+    events = telem.get_events()
+    
+    if events:
+        pprint(events)
+    else:
+        print('\tNone')
+    print('')
 
 def find_bomb_points(friendly=True):
     if friendly:
@@ -172,9 +199,9 @@ if __name__ == '__main__':
         find_all_tanks()
         find_all_bomb_points()
         find_all_AAAs()
-        
-        print('Basic Telemetry:')
-        pprint(telem.basic_telemetry)
+        find_basic_telemetry()
+        find_comments()
+        find_events()
         
     except KeyboardInterrupt:
         print('Closing')
@@ -202,8 +229,8 @@ Enemy Airfields:
 
 ------------------------------------------------------
 Friendly Planes:
-        Position:       [51.428588129131136, 6.919188108689251]
-        Heading:        229.36017484406128
+        Position:       [51.42858696904915, 6.919186223388941]
+        Heading:        229.36098894395926
 
 
 Enemy Planes:
@@ -214,9 +241,7 @@ Friendly Tanks:
         None
 
 Enemy Tanks:
-        Position:       [51.448172861547235, 6.883101199222394]
-        Heading:        0
-
+        None
 
 ------------------------------------------------------
 Friendly Bomb Points:
@@ -239,21 +264,33 @@ Friendly AAAs:
 
         Position:       [51.427463714376124, 6.924367280891929]
 
-        Position:       [51.438792600079246, 6.9392408728402595]
-
 
 Enemy AAAs:
         None
 
+------------------------------------------------------
 Basic Telemetry:
 {'IAS': 0,
  'airframe': 'bf_110g_4',
- 'altitude': 59.221455,
+ 'altitude': 59.221523,
  'flapState': 0,
  'gearState': 100,
- 'heading': 40.639851,
- 'lat': 51.428588129131136,
- 'lon': 6.919188108689251,
- 'pitch': 10.894329,
- 'roll': 0.010828}
+ 'heading': 40.638988,
+ 'lat': 51.42858696904915,
+ 'lon': 6.919186223388941,
+ 'pitch': 10.885853,
+ 'roll': 0.029481}
+------------------------------------------------------
+Comments:
+        None
+
+------------------------------------------------------
+Events:
+{'events': [], 'damage': [{'id': 1, 'msg': 'yn1/error/82220002', 'sender': '', 'enemy': False, 'mode': ''}]}
+{'damage': [{'enemy': False,
+             'id': 1,
+             'mode': '',
+             'msg': 'yn1/error/82220002',
+             'sender': ''}],
+ 'events': []}
  ```
