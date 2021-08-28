@@ -131,16 +131,36 @@ class map_obj(object):
         self.friendly  = True
         
         self.position       = [0, 0] # NOT for airfield
-        self.position_delta = [0, 0] # ONLY for planes (maybe ground vehicles while on the move?)
+        self.position_delta = [0, 0] 
         self.south_end      = [0, 0] # ONLY for airfield
         self.east_end       = [0, 0] # ONLY for airfield
         
-        self.position_ll  = [0, 0] # NOT for airfield
-        self.south_end_ll = [0, 0] # ONLY for airfield
-        self.east_end_ll  = [0, 0] # ONLY for airfield
-        self.runway_dir   = 0 # ONLY for airfield
+        self.position_ll   = [0, 0] # NOT for airfield
+        self.south_end_ll  = [0, 0] # ONLY for airfield
+        self.east_end_ll   = [0, 0] # ONLY for airfield
+        self.runway_dir    = 0      # ONLY for airfield
+        self.airfield      = False
+        self.base          = False
+        self.heavy_tank    = False
+        self.medium_tank   = False
+        self.light_tank    = False
+        self.spg           = False
+        self.spaa          = False
+        self.wheeled       = False # AI only
+        self.tracked       = False # AI only
+        self.aaa           = False
+        self.bomber        = False # Also helicopter (thanks Gayjin, very cool)
+        self.heavy_fighter = False
+        self.fighter       = False
+        self.ship          = False
+        self.torpedo_boat  = False
+        self.tank_respawn  = False
+        self.bomber_respawn  = False
+        self.fighter_respawn = False
+        self.capture_zone  = False
+        self.defend_point  = False
         
-        self.hdg = 0 # ONLY for planes (maybe ground vehicles while on the move?)
+        self.hdg = 0
         
         if map_obj_entry:
             self.update(map_obj_entry, map_size, ULHC_lat, ULHC_lon)
@@ -152,14 +172,114 @@ class map_obj(object):
         Update object attributes based on the provided context
         '''
         
-        self.type = map_obj_entry['type']
-        self.icon = map_obj_entry['icon']
+        self.type      = map_obj_entry['type']
+        self.icon      = map_obj_entry['icon']
         self.hex_color = map_obj_entry['color']
         
-        if self.hex_color in ENEMY_HEX_COLORS:
+        if (self.hex_color in ENEMY_HEX_COLORS) or map_obj_entry['blink']:
             self.friendly = False
         else:
             self.friendly = True
+               
+        if self.type.lower() == 'airfield':
+            self.airfield = True
+        else:
+            self.airfield = False
+            
+        if self.icon.lower() == 'bombing_point':
+            self.base = True
+        else:
+            self.base = False
+        
+        if self.icon.lower() == 'heavytank':
+            self.heavy_tank = True
+        else:
+            self.heavy_tank = False
+        
+        if self.icon.lower() == 'mediumtank':
+            self.medium_tank = True
+        else:
+            self.medium_tank = False
+                
+        if self.icon.lower() == 'lighttank':
+            self.light_tank = True
+        else:
+            self.light_tank = False
+        
+        if self.icon.lower() == 'tankdestroyer':
+            self.spg = True
+        else:
+            self.spg = False
+        
+        if self.icon.lower() == 'spaa':
+            self.spaa = True
+        else:
+            self.spaa = False
+        
+        if self.icon.lower() == 'wheeled':
+            self.wheeled = True
+        else:
+            self.wheeled = False
+            
+        if self.icon.lower() == 'tracked':
+            self.tracked = True
+        else:
+            self.tracked = False
+        
+        if self.icon.lower() == 'airdefence':
+            self.aaa = True
+        else:
+            self.aaa = False
+        
+        if self.icon.lower() == 'bomber':
+            self.bomber = True
+        else:
+            self.bomber = False
+        
+        if self.icon.lower() == 'assault':
+            self.heavy_fighter = True
+        else:
+            self.heavy_fighter = False
+        
+        if self.icon.lower() == 'fighter':
+            self.fighter = True
+        else:
+            self.fighter = False
+        
+        if self.icon.lower() == 'ship':
+            self.ship = True
+        else:
+            self.ship = False
+        
+        if self.icon.lower() == 'torpedoboat':
+            self.torpedo_boat = True
+        else:
+            self.torpedo_boat = False
+        
+        if self.icon.lower() == 'respawn_base_tank':
+            self.tank_respawn = True
+        else:
+            self.tank_respawn = False
+        
+        if self.icon.lower() == 'respawn_base_bomber':
+            self.bomber_respawn = True
+        else:
+            self.bomber_respawn = False
+        
+        if self.icon.lower() == 'respawn_base_fighter':
+            self.fighter_respawn = True
+        else:
+            self.fighter_respawn = False
+        
+        if self.icon.lower() == 'capture_zone':
+            self.capture_zone = True
+        else:
+            self.capture_zone = False
+        
+        if self.icon.lower() == 'defending_point':
+            self.defend_point = True
+        else:
+            self.defend_point = False
         
         try:
             self.position = [map_obj_entry['x'], map_obj_entry['y']]
@@ -257,6 +377,7 @@ class MapInfo(object):
             urlretrieve(URL_MAP_IMG, MAP_PATH)
             self.info = get(URL_MAP_INFO, timeout=REQUEST_TIMEOUT).json()
             self.obj  = get(URL_MAP_OBJ,  timeout=REQUEST_TIMEOUT).json()
+            self.parse_meta()
             
             self.map_img  = Image.open(MAP_PATH)
             self.map_draw = ImageDraw.Draw(self.map_img)
@@ -264,7 +385,7 @@ class MapInfo(object):
             self.grid_info = get_grid_info(self.map_img)
             
             self.map_valid = True
-    
+                
         except URLError:
             print('ERROR: could not download map.jpg')
     
@@ -302,6 +423,91 @@ class MapInfo(object):
                     
                     self.player_lat = self.map_objs[-1].position_ll[0]
                     self.player_lon = self.map_objs[-1].position_ll[1]
+    
+    def airfields(self):
+        return [obj for obj in self.map_objs if obj.airfield]
+    
+    def bases(self):
+        return [obj for obj in self.map_objs if obj.base]
+    
+    def heavy_tanks(self):
+        return [obj for obj in self.map_objs if obj.heavy_tank]
+    
+    def medium_tanks(self):
+        return [obj for obj in self.map_objs if obj.medium_tank]
+    
+    def light_tanks(self):
+        return [obj for obj in self.map_objs if obj.light_tank]
+    
+    def spgs(self):
+        return [obj for obj in self.map_objs if obj.spg]
+    
+    def spaas(self):
+        return [obj for obj in self.map_objs if obj.spaa]
+    
+    def tanks(self):
+        output = []
+        
+        output.extend(self.heavy_tanks())
+        output.extend(self.medium_tanks())
+        output.extend(self.light_tanks())
+        output.extend(self.spgs())
+        output.extend(self.spaas())
+        
+        return output
+    
+    def wheeled_ais(self):
+        return [obj for obj in self.map_objs if obj.wheeled]
+    
+    def tracked_ais(self):
+        return [obj for obj in self.map_objs if obj.tracked]
+    
+    def aaas(self):
+        return [obj for obj in self.map_objs if obj.aaa]
+    
+    def bombers(self):
+        return [obj for obj in self.map_objs if obj.bomber]
+    
+    def heavy_fighters(self):
+        return [obj for obj in self.map_objs if obj.heavy_fighter]
+    
+    def fighters(self):
+        return [obj for obj in self.map_objs if obj.fighter]
+    
+    def ships(self):
+        return [obj for obj in self.map_objs if obj.ship or obj.torpedo_boat]
+    
+    def planes(self):
+        output = []
+        
+        output.extend(self.bombers())
+        output.extend(self.heavy_fighters())
+        output.extend(self.fighters())
+        
+        return output
+    
+    def tank_respawns(self):
+        return [obj for obj in self.map_objs if obj.tank_respawn]
+    
+    def bomber_respawns(self):
+        return [obj for obj in self.map_objs if obj.bomber_respawn]
+    
+    def fighter_respawns(self):
+        return [obj for obj in self.map_objs if obj.fighter_respawn]
+    
+    def plane_respawns(self):
+        output = []
+        
+        output.extend(self.bomber_respawns())
+        output.extend(self.fighter_respawns())
+        
+        return output
+    
+    def capture_zones(self):
+        return [obj for obj in self.map_objs if obj.capture_zone]
+    
+    def defend_points(self):
+        return [obj for obj in self.map_objs if obj.defend_point]
     
     
 
