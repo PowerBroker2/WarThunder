@@ -77,6 +77,7 @@ def find_basic_telemetry():
     print('------------------------------------------------------')
     print('Basic Telemetry:')
     pprint(telem.basic_telemetry)
+    print('')
     
 def find_comments():
     print('------------------------------------------------------')
@@ -103,10 +104,10 @@ def find_events():
 def find_bomb_points(friendly=True):
     if friendly:
         print('Friendly Bomb Points:')
-        bomb_points = [obj for obj in telem.map_info.map_objs if obj.icon == 'bombing_point' and obj.friendly]
+        bomb_points = [obj for obj in telem.map_info.bases() if obj.friendly]
     else:
         print('Enemy Bomb Points:')
-        bomb_points = [obj for obj in telem.map_info.map_objs if obj.icon == 'bombing_point' and not obj.friendly]
+        bomb_points = [obj for obj in telem.map_info.bases() if not obj.friendly]
     
     if bomb_points:
         for bomb_point in bomb_points:
@@ -118,10 +119,10 @@ def find_bomb_points(friendly=True):
 def find_airfields(friendly=True):
     if friendly:
         print('Friendly Airfields:')
-        airfields = [obj for obj in telem.map_info.map_objs if obj.type == 'airfield' and obj.friendly]
+        airfields = [obj for obj in telem.map_info.airfields() if obj.friendly]
     else:
         print('Enemy Airfields:')
-        airfields = [obj for obj in telem.map_info.map_objs if obj.type == 'airfield' and not obj.friendly]
+        airfields = [obj for obj in telem.map_info.airfields() if not obj.friendly]
     
     if airfields:
         for airfield in airfields:
@@ -137,10 +138,10 @@ def find_airfields(friendly=True):
 def find_planes(friendly=True):
     if friendly:
         print('Friendly Planes:')
-        planes = [obj for obj in telem.map_info.map_objs if obj.type == 'aircraft' and obj.friendly]
+        planes = [obj for obj in telem.map_info.planes() if obj.friendly]
     else:
         print('Enemy Planes:')
-        planes = [obj for obj in telem.map_info.map_objs if obj.type == 'aircraft' and not obj.friendly]
+        planes = [obj for obj in telem.map_info.planes() if not obj.friendly]
     
     if planes:
         for plane in planes:
@@ -155,10 +156,10 @@ def find_planes(friendly=True):
 def find_tanks(friendly=True):
     if friendly:
         print('Friendly Tanks:')
-        tanks = [obj for obj in telem.map_info.map_objs if ('Tank' in obj.icon or obj.type == 'Wheeled') and obj.friendly]
+        tanks = [obj for obj in telem.map_info.tanks() if obj.friendly]
     else:
         print('Enemy Tanks:')
-        tanks = [obj for obj in telem.map_info.map_objs if ('Tank' in obj.icon or obj.type == 'Wheeled') and not obj.friendly]
+        tanks = [obj for obj in telem.map_info.tanks() if not obj.friendly]
     
     if tanks:
         for tank in tanks:
@@ -172,15 +173,14 @@ def find_tanks(friendly=True):
 def find_AAAs(friendly=True):
     if friendly:
         print('Friendly AAAs:')
-        AAAs = [obj for obj in telem.map_info.map_objs if obj.icon == 'Airdefence' and obj.friendly]
+        AAAs = [obj for obj in telem.map_info.aaas() if obj.friendly]
     else:
         print('Enemy AAAs:')
-        AAAs = [obj for obj in telem.map_info.map_objs if obj.icon == 'Airdefence' and not obj.friendly]
+        AAAs = [obj for obj in telem.map_info.aaas() if not obj.friendly]
     
     if AAAs:
         for AAA in AAAs:
             print('\tPosition:\t{}'.format(AAA.position_ll))
-            print('')
     else:
         print('\tNone')
     print('')
@@ -229,8 +229,17 @@ Enemy Airfields:
 
 ------------------------------------------------------
 Friendly Planes:
-        Position:       [51.42858696904915, 6.919186223388941]
-        Heading:        229.36098894395926
+        Position:       [51.44442707177771, 6.9048435542278]
+        Heading:        191.7501316630443
+
+        Position:       [51.444117867741056, 6.904189278772745]
+        Heading:        191.7327479963323
+
+        Position:       [51.44454697658904, 6.904059699788993]
+        Heading:        191.73257970022075
+
+        Position:       [51.44424583467913, 6.903432678896212]
+        Heading:        191.73146722121177
 
 
 Enemy Planes:
@@ -241,7 +250,9 @@ Friendly Tanks:
         None
 
 Enemy Tanks:
-        None
+        Position:       [51.448172861547235, 6.883101199222394]
+        Heading:        0
+
 
 ------------------------------------------------------
 Friendly Bomb Points:
@@ -253,17 +264,12 @@ Enemy Bomb Points:
 ------------------------------------------------------
 Friendly AAAs:
         Position:       [51.43844836391245, 6.925201117152168]
-
         Position:       [51.43829338882834, 6.9249774559908275]
-
         Position:       [51.438609103385076, 6.925442639430436]
-
         Position:       [51.4276199323936, 6.924573106340005]
-
         Position:       [51.42778836500274, 6.924790301773768]
-
         Position:       [51.427463714376124, 6.924367280891929]
-
+        Position:       [51.438792600079246, 6.9392408728402595]
 
 Enemy AAAs:
         None
@@ -272,14 +278,15 @@ Enemy AAAs:
 Basic Telemetry:
 {'IAS': 0,
  'airframe': 'bf_110g_4',
- 'altitude': 59.221523,
+ 'altitude': 59.221455,
  'flapState': 0,
  'gearState': 100,
- 'heading': 40.638988,
- 'lat': 51.42858696904915,
- 'lon': 6.919186223388941,
- 'pitch': 10.885853,
- 'roll': 0.029481}
+ 'heading': 40.639851,
+ 'lat': 51.428588129131136,
+ 'lon': 6.919188108689251,
+ 'pitch': 10.894329,
+ 'roll': 0.010828}
+
 ------------------------------------------------------
 Comments:
         None
