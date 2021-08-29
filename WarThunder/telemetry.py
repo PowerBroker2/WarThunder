@@ -1,7 +1,5 @@
 '''
-Python3 module/script to query and access telemetry data during War Thunder "Air Battles" matches
-
-NOTE: THIS DOES NOT WORK WITH TANK OR SHIP BATTLES
+Module to query and access telemetry data during War Thunder matches
 '''
 
 

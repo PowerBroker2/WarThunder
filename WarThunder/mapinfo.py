@@ -1,3 +1,8 @@
+'''
+Module to query and access map and non-player object/vehicle data during War Thunder matches
+'''
+
+
 import os
 import socket
 import imagehash
@@ -26,6 +31,17 @@ REQUEST_TIMEOUT  = 0.1
 
 
 def hypotenuse(a, b):
+    '''
+    Description:
+    ------------
+    Find the length of the hypotenuse side of a right triangle
+    
+    :param a: float - One side of the right triange
+    :param b: float - Other side of the right triange
+    
+    :return: float - Length of the hypotenuse
+    '''
+    
     return sqrt((a ** 2) + (b ** 2))
 
 def coord_bearing(lat_1, lon_1, lat_2, lon_2):
@@ -33,6 +49,13 @@ def coord_bearing(lat_1, lon_1, lat_2, lon_2):
     Description:
     ------------
     Find the bearing (in degrees) between two lat/lon coordinates (dd)
+    
+    :param lat_1: float - First point's latitude (dd)
+    :param lon_1: float - First point's longitude (dd)
+    :param lat_2: float - Second point's latitude (dd)
+    :param lon_2: float - Second point's longitude (dd)
+    
+    :return: float - bearing in degrees between point 1 and 2
     '''
     
     deltaLon_r = radians(lon_2 - lon_1)
@@ -49,6 +72,13 @@ def coord_dist(lat_1, lon_1, lat_2, lon_2):
     Description:
     ------------
     Find the total distance (in km) between two lat/lon coordinates (dd)
+    
+    :param lat_1: float - First point's latitude (dd)
+    :param lon_1: float - First point's longitude (dd)
+    :param lat_2: float - Second point's latitude (dd)
+    :param lon_2: float - Second point's longitude (dd)
+    
+    :return: float - Distance in km between points 1 and 2
     '''
     
     lat_1_rad = radians(lat_1)
@@ -69,6 +99,13 @@ def coord_coord(lat, lon, dist, bearing):
     ------------
     Finds the lat/lon coordinates "dist" km away from the given "lat" and "lon"
     coordinate along the given compass "bearing"
+    
+    :param lat:     Float - First point's latitude (dd)
+    :param lon:     Float - First point's longitude (dd)
+    :param dist:    Float - Distance in km the second point should be from the first point
+    :param bearing: Float - Bearing in degrees from the first point to the second
+    
+    :return: List of floats - Latitude and longitude in DD of the second point
     '''
     
     brng  = radians(bearing)
@@ -85,7 +122,14 @@ def get_grid_info(map_img):
     Description:
     ------------
     Compare map from browser interface to pre-calculated map hash to provide
-    location info: Note that map_img must be a PIL.Image object
+    location info.
+    
+    :param map_img: PIL.Image object of the current map.png
+    
+    :return: dict - Example: {'name': 'UNKNOWN',
+                              'ULHC_lat': 0.0,
+                              'ULHC_lon': 0.0,
+                              'size_km' : 65}
     '''
     
     hash_ = str(imagehash.average_hash(map_img))
@@ -109,7 +153,25 @@ def find_obj_coords(x, y, map_size, ULHC_lat, ULHC_lon):
     '''
     Description:
     ------------
-    Convert the provided x/y coordinate to lat/lon
+    Convert the provided object's x/y coordinate to lat/lon
+    
+    :param x:        float - The distance of the object from the upper left
+                             hand corner of the map in the horizontal direction.
+                             x=0 means the object is on the left border of the
+                             map and x=1 means the object is on the right border
+    :param y:        float - The distance of the object from the upper left
+                             hand corner of the map in the vertical direction.
+                             y=0 means the object is on the top border of the
+                             map and y=1 means the object is on the bottom border
+    :param map_size: float - The length/width of the map in km (all maps
+                             are square)
+    :param ULHC_lat: float - The true world estimated latidude of the
+                             map's upper left hand corner point
+    :param ULHC_lon: float - The true world estimated longitude of the
+                             map's upper left hand corner point
+    
+    :return:         list of floats - Estimated latitude and longitude of the
+                                      object's position
     '''
     
     dist_x  = x * map_size
@@ -125,6 +187,17 @@ def find_obj_coords(x, y, map_size, ULHC_lat, ULHC_lon):
 
 class map_obj(object):
     def __init__(self, map_obj_entry=None, map_size=None, ULHC_lat=None, ULHC_lon=None):
+        '''
+        :param map_obj_entry: dict - A single object/vehicle entry from the JSON
+                                     scraped from http://localhost:8111/map_obj.json
+        :param map_size:      float - The length/width of the map in km (all maps
+                                      are square)
+        :param ULHC_lat:      float - The true world estimated latidude of the
+                                      map's upper left hand corner point
+        :param ULHC_lon:      float - The true world estimated longitude of the
+                                      map's upper left hand corner point
+        '''
+        
         self.type      = ''
         self.icon      = ''
         self.hex_color = ''
@@ -169,7 +242,33 @@ class map_obj(object):
         '''
         Description:
         ------------
-        Update object attributes based on the provided context
+        Update object attributes based on the provided map context. Such attributes
+        include:
+            
+            self.type
+            self.icon
+            self.hex_color
+            self.position       (x-y coordinate)
+            self.position_ll    (estimated latitude and longitude)
+            self.position_delta (x-y difference)
+            self.hdg
+            self.south_end    (x-y coordinate)
+            self.south_end_ll (estimated latitude and longitude)
+            self.east_end     (x-y coordinate)
+            self.east_end_ll  (estimated latitude and longitude)
+            self.runway_dir
+            
+        plus other attributes that denote the object's vehicle type (i.e. ship
+        or fighter)
+        
+        :param map_obj_entry: dict - A single object/vehicle entry from the JSON
+                                     scraped from http://localhost:8111/map_obj.json
+        :param map_size:      float - The length/width of the map in km (all maps
+                                      are square)
+        :param ULHC_lat:      float - The true world estimated latidude of the
+                                      map's upper left hand corner point
+        :param ULHC_lon:      float - The true world estimated longitude of the
+                                      map's upper left hand corner point
         '''
         
         self.type      = map_obj_entry['type']
@@ -369,6 +468,8 @@ class MapInfo(object):
           'dx': -0.640827,
           'dy': 0.767686},
          ...]
+        
+        :return: bool - Whether or not the map data was successfully retrieved
         '''
         
         self.map_valid = False
@@ -405,7 +506,9 @@ class MapInfo(object):
         '''
         Description:
         ------------
-        Calculate values that might be useful for extra processing
+        Calculate values that might be useful for extra processing. Also build
+        a list of War Thunder objects (self.map_objs) present in the match to
+        keep track of
         '''
         
         self.map_objs = []
@@ -425,59 +528,187 @@ class MapInfo(object):
                     self.player_lon = self.map_objs[-1].position_ll[1]
     
     def airfields(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all airfields currently in the match
+        
+        :return: list of airfield map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.airfield]
     
     def bases(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all bases (bomb points) currently in the match
+        
+        :return: list of base map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.base]
     
     def heavy_tanks(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all heavy tanks currently in the match
+        
+        :return: list of heavy tank map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.heavy_tank]
     
     def medium_tanks(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all medium tanks currently in the match
+        
+        :return: list of medium tank map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.medium_tank]
     
     def light_tanks(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all light tanks currently in the match
+        
+        :return: list of light tank map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.light_tank]
     
-    def spgs(self):
+    def SPGs(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all spgs currently in the match
+        
+        :return: list of spg map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.spg]
     
-    def spaas(self):
+    def SPAAs(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all spaas currently in the match
+        
+        :return: list of spaa map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.spaa]
     
     def tanks(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all tanks currently in the match
+        
+        :return: list of tank map_objs
+        '''
+        
         output = []
         
         output.extend(self.heavy_tanks())
         output.extend(self.medium_tanks())
         output.extend(self.light_tanks())
-        output.extend(self.spgs())
-        output.extend(self.spaas())
+        output.extend(self.SPGs())
+        output.extend(self.SPAAs())
         
         return output
     
-    def wheeled_ais(self):
+    def wheeled_AIs(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all wheeled AIs currently in the match
+        
+        :return: list of wheeled AI map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.wheeled]
     
-    def tracked_ais(self):
+    def tracked_AIs(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all tracked AIs currently in the match
+        
+        :return: list of tracked AI map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.tracked]
     
-    def aaas(self):
+    def AAAs(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all AAAs currently in the match
+        
+        :return: list of AAA map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.aaa]
     
     def bombers(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all bombers (and helicopters) currently in the match
+        
+        :return: list of bomber/helicopter map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.bomber]
     
     def heavy_fighters(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all heavy fighters currently in the match
+        
+        :return: list of heavy fighter map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.heavy_fighter]
     
     def fighters(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all fighters currently in the match
+        
+        :return: list of fighter map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.fighter]
     
     def ships(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all shis currently in the match
+        
+        :return: list of shi map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.ship or obj.torpedo_boat]
     
     def planes(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all planes currently in the match
+        
+        :return: list of plane map_objs
+        '''
+        
         output = []
         
         output.extend(self.bombers())
@@ -487,15 +718,47 @@ class MapInfo(object):
         return output
     
     def tank_respawns(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all tank respawns currently in the match
+        
+        :return: list of tank respawn map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.tank_respawn]
     
     def bomber_respawns(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all bomber respawns currently in the match
+        
+        :return: list of bomber respawn map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.bomber_respawn]
     
     def fighter_respawns(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all fighter respawns currently in the match
+        
+        :return: list of fighter respawn map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.fighter_respawn]
     
     def plane_respawns(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all plane respawns currently in the match
+        
+        :return: list of plane respawn map_objs
+        '''
+        
         output = []
         
         output.extend(self.bomber_respawns())
@@ -504,9 +767,25 @@ class MapInfo(object):
         return output
     
     def capture_zones(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all capture zones currently in the match
+        
+        :return: list of capture zone map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.capture_zone]
     
     def defend_points(self):
+        '''
+        Description:
+        ------------
+        Return a list of map_objs that includes all defend points currently in the match
+        
+        :return: list of defend point map_objs
+        '''
+        
         return [obj for obj in self.map_objs if obj.defend_point]
     
     

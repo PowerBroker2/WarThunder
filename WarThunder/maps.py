@@ -1,3 +1,14 @@
+'''
+Module to store map metadata for lookup in the mapinfo module
+
+example maps entry: {'0707937f153ccc5d': {'name': 'Kursk',
+                             'ULHC_lat': 51.16278580067218,
+                             'ULHC_lon': 36.906235369488115,
+                             'size_km' : 65},
+                     ...}
+'''
+
+
 maps = {'0707937f153ccc5d': {'name': 'Kursk',
                              'ULHC_lat': 51.16278580067218,
                              'ULHC_lon': 36.906235369488115,

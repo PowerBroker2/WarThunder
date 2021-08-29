@@ -1,3 +1,8 @@
+'''
+Module to make Tacview compatible ACMI files - see https://www.tacview.net/documentation/acmi/en/
+'''
+
+
 import os
 from random import randint
 import datetime as dt
@@ -68,8 +73,6 @@ class ACMI(object):
         Create an ACMI file with a basic header
         
         :param file_name: str - full filepath or filename of ACMI file to create
-        
-        :return: void
         '''
         
         self.file_name      = file_name
