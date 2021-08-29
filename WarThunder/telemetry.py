@@ -25,11 +25,20 @@ METRICS_PLANES = ['p-', 'f-', 'f2', 'f3', 'f4', 'f6', 'f7', 'f8', 'f9', 'os',
                   'fu', 'se', 'bl', 'be', 'su', 'te', 'st', 'mo', 'we', 'ha']
 
 
-def combine_dicts(to_dict, from_dict):
+def combine_dicts(to_dict: dict, from_dict: dict) -> dict:
     '''
-    Description:
-    ------------
     Merges all contents of "from_dict" into "to_dict"
+    
+    Args:
+        to_dict:
+            One dictionary to be merged
+        from_dict:
+            Other dictionary to be merged
+    
+    Returns:
+        to_dict
+            Dictionary with the merged contents of the original to_dict and
+            from_dict
     '''
     
     if (type(to_dict) == dict) and (type(from_dict) == dict):
@@ -38,7 +47,7 @@ def combine_dicts(to_dict, from_dict):
 
         return to_dict
     else:
-        return False
+        return {}
 
 
 class TelemInterface(object):
@@ -55,12 +64,13 @@ class TelemInterface(object):
         self.events          = {}
         self.status          = WT_NOT_RUNNING
     
-    def get_comments(self):
+    def get_comments(self) -> list[dict]:
         '''
-        Description:
-        ------------
-        Query http://localhost:8111/gamechat?lastId=-1 to get a JSON of all
-        comments made in the current match
+        Query http://localhost:8111/gamechat?lastId=-1 to get a list of all
+        comments (in JSON format) made in the current match
+        
+        Returns:
+            self.comments
         '''
         
         comments_response = requests.get(URL_COMMENTS.format(IP_ADDRESS, self.last_comment_ID))
@@ -69,13 +79,14 @@ class TelemInterface(object):
             self.last_comment_ID = max([comment['id'] for comment in self.comments])
         return self.comments
     
-    def get_events(self):
+    def get_events(self) -> dict:
         '''
-        Description:
-        ------------
-        Query http://localhost:8111/hudmsg?lastEvt=-1&lastDmg=-1 to get a JSON
-        of all events (i.e. when someone is damaged or destroyed) in the
-        current match
+        Query http://localhost:8111/hudmsg?lastEvt=-1&lastDmg=-1 to get
+        information on all events (i.e. when someone is damaged or destroyed)
+        in the current match
+        
+        Returns:
+            self.events
         '''
         
         events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID))
@@ -83,11 +94,13 @@ class TelemInterface(object):
         self.last_event_ID = max([event['id'] for event in self.events['damage']])
         return self.events
     
-    def find_altitude(self):
+    def find_altitude(self) -> float:
         '''
-        Description:
-        ------------
         Finds and standardizes reported alittude to meters for all planes
+        
+        Returns:
+            Altitude:
+                Altitude in meters
         '''
         
         name = self.indicators['type']
@@ -112,10 +125,8 @@ class TelemInterface(object):
             else:
                 return 0
 
-    def get_telemetry(self, comments=False, events=False):
+    def get_telemetry(self, comments: bool = False, events: bool = False) -> bool:
         '''
-        Description:
-        ------------
         Ping http://localhost:8111/indicators and http://localhost:8111/state
         to sample telemetry data. Each one of the URL requests returns a
         respective JSON string. These two JSON strings are converted into
@@ -129,11 +140,15 @@ class TelemInterface(object):
         the minimal amount of telmetry needed for navigation and control (see
         file docstring for more info)
         
-        :param comments: bool - whether or not to query for match comment data
-        :param events:   bool - whether or not to query for match event data
+        Args:
+            comments:
+                Whether or not to query for match comment data
+            events:
+                Whether or not to query for match event data
         
-        :return self.connected: bool - whehter or not player is in a match and
-                                       flying
+        Returns:
+            self.connected:
+                Whehter or not player is in a match
         '''
         
         self.connected       = False
