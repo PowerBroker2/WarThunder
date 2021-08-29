@@ -173,10 +173,10 @@ def find_tanks(friendly=True):
 def find_AAAs(friendly=True):
     if friendly:
         print('Friendly AAAs:')
-        AAAs = [obj for obj in telem.map_info.aaas() if obj.friendly]
+        AAAs = [obj for obj in telem.map_info.AAAs() if obj.friendly]
     else:
         print('Enemy AAAs:')
-        AAAs = [obj for obj in telem.map_info.aaas() if not obj.friendly]
+        AAAs = [obj for obj in telem.map_info.AAAs() if not obj.friendly]
     
     if AAAs:
         for AAA in AAAs:
