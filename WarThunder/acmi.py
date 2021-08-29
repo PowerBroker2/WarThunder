@@ -16,22 +16,18 @@ header_mandatory = ('FileType={filetype}\n'
 
 class ACMI(object):
     '''
-    Description:
-    ------------
     Class used to create and maintain a given ACMI file used by the
     downloadable program Tacview
     '''
         
-    def __init__(self, num_objs=1):
+    def __init__(self, num_objs: int = 1):
         '''
-        Description:
-        ------------
         Initialize class object and create a member dict named "obj_ids" to
         hold unique/valid HEX ID values for each object to be displayed
         
-        :param num_objs: int - number of objects to simulaneously display in Tacview
-        
-        :return self.obj_ids: dict - lookup table of unique object HEX IDs
+        Args:
+            num_objs:
+                Number of objects to simulaneously display in Tacview
         '''
         
         self.obj_ids = {}
@@ -42,13 +38,13 @@ class ACMI(object):
         for obj_num in range(num_objs):
             self.add_object()
         
-    def add_object(self):
+    def add_object(self) -> int:
         '''
-        Description:
-        ------------
         Append a new and unique hex object ID to the self.obj_ids dict
         
-        :return id_: str - hex ID for new object
+        Returns:
+            id_:
+                Hex ID for new object
         '''
         
         id_ = str(hex(randint(1, MAX_NUM_OBJS + 2))[2:]).upper()
@@ -66,13 +62,17 @@ class ACMI(object):
         
         return id_
         
-    def create(self, file_name, file_type='text/acmi/tacview', acmi_ver='2.1'):
+    def create(self, file_name: str, file_type: str = 'text/acmi/tacview', acmi_ver: str = '2.1'):
         '''
-        Description:
-        ------------
         Create an ACMI file with a basic header
         
-        :param file_name: str - full filepath or filename of ACMI file to create
+        Args:
+            file_name:
+                Full filepath or filename of ACMI file to create
+            file_type:
+                See default
+            acmi_ver:
+                See default
         '''
         
         self.file_name      = file_name
@@ -91,27 +91,29 @@ class ACMI(object):
                                               acmiver=acmi_ver,
                                               reftime=self.get_timestamp().isoformat()))
     
-    def get_timestamp(self):
+    def get_timestamp(self) -> dt.datetime:
         '''
-        Description:
-        ------------
         Find the true time to provide accurate sample timestamps
         
-        :return: datetime - current UTC time
+        Returns:
+            datetime:
+                Current UTC time
         '''
         
         return dt.datetime.utcnow()
 
-    def insert_user_header(self, header_content: dict):
+    def insert_user_header(self, header_content: dict) -> bool:
         '''
-        Description:
-        ------------
         Insert special header parameters
         (NOTE - DO THIS BEFORE INSERTING ANY ENTRIES)**************************
         
-        :param header_content: dict - header property names and values
+        Args:
+            header_content:
+                Header property names and values
         
-        :return: bool - whether or not the operation was successful
+        Returns:
+            Success:
+                Whether or not the operation was successful
         '''
         
         if not type(header_content) == dict:
@@ -128,16 +130,18 @@ class ACMI(object):
             print('ERROR - ACMI file not found')
             return False
     
-    def format_user_header(self, header_content: dict):
+    def format_user_header(self, header_content: dict) -> str:
         '''
-        Description:
-        ------------
         Create an ACMI file header with user defined fields/values (does not
         include mandatory header fields)
         
-        :param header_content: dict - header property names and values
+        Args:
+            header_content:
+                Header property names and values
         
-        :return: str - formatted header string
+        Returns:
+            Header:
+                Formatted header string
         '''
         
         if not type(header_content) == dict:
@@ -146,17 +150,20 @@ class ACMI(object):
         header_list = ['0,{}={}'.format(key, header_content[key]) for key in header_content.keys()]
         return '\n'.join(header_list) + '\n'
     
-    def insert_entry(self, obj_num, data: dict, timestamp=True):
+    def insert_entry(self, obj_num: int, data: dict, timestamp: bool = True) -> bool:
         '''
-        Description:
-        ------------
         Log a single entry of telemetry in the ACMI file for a given object
         
-        :param obj_num: int  - object number as represented in the ID-lookup
-                               dictionary self.obj_ids
-        :param data:    dict - object information to be included in the new entry
+        Args:
+            obj_num:
+                Object number as represented in the ID-lookup dictionary
+                self.obj_ids
+            data:
+                Object information to be included in the new entry
         
-        :return: bool - whether or not the operation was successful
+        Returns:
+            Success:
+                Whether or not the operation was successful
         '''
         
         if not type(data) == dict:
@@ -173,17 +180,20 @@ class ACMI(object):
             print('ERROR - ACMI file not found')
             return False
     
-    def format_entry(self, obj_num, data: dict, timestamp=True):
+    def format_entry(self, obj_num: int, data: dict, timestamp: bool = True):
         '''
-        Description:
-        ------------
         Create a single entry of telemetry for a given object
         
-        :param obj_num: int  - object number as represented in the ID-lookup
-                               dictionary self.obj_ids
-        :param data:    dict - object information to be included in the new entry
+        Args:
+            obj_num:
+                Object number as represented in the ID-lookup dictionary
+                self.obj_ids
+            data:
+                Object information to be included in the new entry
         
-        :return: str - formatted entry string
+        Returns:
+            Entry:
+                Formatted entry string
         '''
         
         if not type(data) == dict:
