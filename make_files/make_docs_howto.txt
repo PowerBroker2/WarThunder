@@ -1,0 +1,7 @@
+cd WarThunder
+mkdir docs
+cd docs
+sphinx-quickstart
+(comment out lines 13-15 and change to abspath('..'), add 'sphinx.ext.autodoc' to the extensions list and change the html theme to "classic" in conf.py, and add the text modules under :caption: in index.rst)
+sphinx-apidoc -o . .. --ext-autodoc
+make html
