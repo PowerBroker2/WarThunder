@@ -1,0 +1,11 @@
+version: 2
+
+# Build from docs/ directory with sphinx
+sphinx:
+  configuration: WarThunder/WarThunder/docs/conf.py
+
+# Explicitly set the version of Python and its requirements
+python:
+  version: 3.7
+  install:
+    - requirements: WarThunder/WarThunder/docs/requirements.txt
