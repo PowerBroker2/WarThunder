@@ -7,8 +7,8 @@ Python package to access vehicle telemetry and match data in real-time while in 
     - Location in latitude/longitude (DD)
     - Heading angle
     - Airspeed
-    - Pitch angle
   - Data avilable only for user's vehicle:
+    - Pitch angle
     - Roll angle
     - Flap state
     - Gear state
