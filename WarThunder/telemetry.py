@@ -36,7 +36,6 @@ def combine_dicts(to_dict: dict, from_dict: dict) -> dict:
             Other dictionary to be merged
     
     Returns:
-        to_dict
             Dictionary with the merged contents of the original to_dict and
             from_dict
     '''
@@ -64,13 +63,13 @@ class TelemInterface(object):
         self.events          = {}
         self.status          = WT_NOT_RUNNING
     
-    def get_comments(self) -> list[dict]:
+    def get_comments(self) -> list:
         '''
         Query http://localhost:8111/gamechat?lastId=-1 to get a list of all
         comments (in JSON format) made in the current match
         
         Returns:
-            self.comments
+                List of comments
         '''
         
         comments_response = requests.get(URL_COMMENTS.format(IP_ADDRESS, self.last_comment_ID))
@@ -86,7 +85,7 @@ class TelemInterface(object):
         in the current match
         
         Returns:
-            self.events
+                Events log dictionary
         '''
         
         events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID))
@@ -99,7 +98,6 @@ class TelemInterface(object):
         Finds and standardizes reported alittude to meters for all planes
         
         Returns:
-            Altitude:
                 Altitude in meters
         '''
         
@@ -147,8 +145,7 @@ class TelemInterface(object):
                 Whether or not to query for match event data
         
         Returns:
-            self.connected:
-                Whehter or not player is in a match
+                Whether or not player is in a match
         '''
         
         self.connected       = False

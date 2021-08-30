@@ -43,7 +43,6 @@ class ACMI(object):
         Append a new and unique hex object ID to the self.obj_ids dict
         
         Returns:
-            id_:
                 Hex ID for new object
         '''
         
@@ -96,7 +95,6 @@ class ACMI(object):
         Find the true time to provide accurate sample timestamps
         
         Returns:
-            datetime:
                 Current UTC time
         '''
         
@@ -140,7 +138,6 @@ class ACMI(object):
                 Header property names and values
         
         Returns:
-            Header:
                 Formatted header string
         '''
         
@@ -192,7 +189,6 @@ class ACMI(object):
                 Object information to be included in the new entry
         
         Returns:
-            Entry:
                 Formatted entry string
         '''
         

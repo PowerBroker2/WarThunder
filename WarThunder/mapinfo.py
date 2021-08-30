@@ -41,7 +41,6 @@ def hypotenuse(a: float, b: float) -> float:
             Other side of the right triange
     
     Returns:
-        Length:
             Length of the hypotenuse
     '''
     
@@ -62,7 +61,6 @@ def coord_bearing(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> flo
             Second point's longitude (dd)
     
     Returns:
-        Bearing:
             Bearing in degrees between point 1 and 2
     '''
     
@@ -90,7 +88,6 @@ def coord_dist(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> float:
             Second point's longitude (dd)
     
     Returns:
-        Distance:
             Distance in km between point 1 and 2
     '''
     
@@ -106,7 +103,7 @@ def coord_dist(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> float:
     
     return 2 * EARTH_RADIUS_KM * atan2(sqrt(a), sqrt(1 - a))
 
-def coord_coord(lat: float, lon: float, dist: float, bearing: float) -> list[float]:
+def coord_coord(lat: float, lon: float, dist: float, bearing: float) -> list:
     '''
     Finds the lat/lon coordinates "dist" km away from the given "lat" and "lon"
     coordinate along the given compass "bearing"
@@ -122,7 +119,6 @@ def coord_coord(lat: float, lon: float, dist: float, bearing: float) -> list[flo
             Bearing in degrees from the first point to the second
     
     Returns:
-        LatLon:
             Latitude and longitude in DD of the second point
     '''
     
@@ -145,8 +141,7 @@ def get_grid_info(map_img: Image) -> dict:
             PIL.Image object of the current map's JPEG
     
     Returns:
-        MapDict:
-            Example - 
+            Dictionary with map metadata. Example - 
                 {'name': 'Kursk',
                  'ULHC_lat': 51.16278580067218,
                  'ULHC_lon': 36.906235369488115,
@@ -170,7 +165,7 @@ def get_grid_info(map_img: Image) -> dict:
             'ULHC_lon': 0.0,
             'size_km' : 65}
 
-def find_obj_coords(x: float, y: float, map_size: float, ULHC_lat: float, ULHC_lon: float) -> list[float]:
+def find_obj_coords(x: float, y: float, map_size: float, ULHC_lat: float, ULHC_lon: float) -> list:
     '''
     Convert the provided object's x/y coordinate to lat/lon
     
@@ -194,7 +189,6 @@ def find_obj_coords(x: float, y: float, map_size: float, ULHC_lat: float, ULHC_l
             corner point
     
     Returns:
-        LatLon:
             Estimated latitude and longitude of the object's position
     '''
     
@@ -498,7 +492,6 @@ class MapInfo(object):
          ...]
         
         Returns:
-            self.map_valid:
                 Whether or not the map data was successfully retrieved
         '''
         
@@ -555,90 +548,82 @@ class MapInfo(object):
                     self.player_lat = self.map_objs[-1].position_ll[0]
                     self.player_lon = self.map_objs[-1].position_ll[1]
     
-    def airfields(self) -> list[map_obj]:
+    def airfields(self) -> list:
         '''
         Return a list of map_objs that includes all airfields currently in the match
         
         Returns:
-            Airfields:
-                list of map_objs of found airfields
+                List of map_objs of found airfields
         '''
         
         return [obj for obj in self.map_objs if obj.airfield]
     
-    def bases(self) -> list[map_obj]:
+    def bases(self) -> list:
         '''
         Return a list of map_objs that includes all bases (bomb points) currently in the match
         
         Returns:
-            Bases:
-                list of map_objs of found bases 
+                List of map_objs of found bases 
         '''
         
         return [obj for obj in self.map_objs if obj.base]
     
-    def heavy_tanks(self) -> list[map_obj]:
+    def heavy_tanks(self) -> list:
         '''
         Return a list of map_objs that includes all heavy tanks currently in the match
         
         Returns:
-            HeavyTanks:
-                list of map_objs of found heavy tanks
+                List of map_objs of found heavy tanks
         '''
         
         return [obj for obj in self.map_objs if obj.heavy_tank]
     
-    def medium_tanks(self) -> list[map_obj]:
+    def medium_tanks(self) -> list:
         '''
         Return a list of map_objs that includes all medium tanks currently in the match
         
         Returns:
-            MediumTanks:
-                list of map_objs of found medium tanks
+                List of map_objs of found medium tanks
         '''
         
         return [obj for obj in self.map_objs if obj.medium_tank]
     
-    def light_tanks(self) -> list[map_obj]:
+    def light_tanks(self) -> list:
         '''
         Return a list of map_objs that includes all light tanks currently in the match
         
         Returns:
-            LightTanks:
-                list of map_objs of found light tanks
+                List of map_objs of found light tanks
         '''
         
         return [obj for obj in self.map_objs if obj.light_tank]
     
-    def SPGs(self) -> list[map_obj]:
+    def SPGs(self) -> list:
         '''
         Return a list of map_objs that includes all spgs currently in the match
         
         Returns:
-            SPGs:
-                list of map_objs of found spgs
+                List of map_objs of found spgs
         '''
         
         return [obj for obj in self.map_objs if obj.spg]
     
-    def SPAAs(self) -> list[map_obj]:
+    def SPAAs(self) -> list:
         '''
         Return a list of map_objs that includes all spaas currently in the match
         
         Returns:
-            SPAAs:
-                list of map_objs of found spaas
+                List of map_objs of found spaas
         '''
         
         return [obj for obj in self.map_objs if obj.spaa]
     
-    def tanks(self) -> list[map_obj]:
+    def tanks(self) -> list:
         '''
         Return a list of map_objs that includes all tanks currently in the match
         
         Returns:
-            tanks:
-                list of map_objs of found tanks
+                List of map_objs of found tanks
         '''
         
         output = []
@@ -651,90 +636,82 @@ class MapInfo(object):
         
         return output
     
-    def wheeled_AIs(self) -> list[map_obj]:
+    def wheeled_AIs(self) -> list:
         '''
         Return a list of map_objs that includes all wheeled AIs currently in the match
         
         Returns:
-            WheeledAIs:
-                list of map_objs of found wheeled AIs
+                List of map_objs of found wheeled AIs
         '''
         
         return [obj for obj in self.map_objs if obj.wheeled]
     
-    def tracked_AIs(self) -> list[map_obj]:
+    def tracked_AIs(self) -> list:
         '''
         Return a list of map_objs that includes all tracked AIs currently in the match
         
         Returns:
-            TrackedAIs:
-                list of map_objs of found tracked AIs
+                List of map_objs of found tracked AIs
         '''
         
         return [obj for obj in self.map_objs if obj.tracked]
     
-    def AAAs(self) -> list[map_obj]:
+    def AAAs(self) -> list:
         '''
         Return a list of map_objs that includes all AAAs currently in the match
         
         Returns:
-            AAAs:
-                list of map_objs of found AAAs
+                List of map_objs of found AAAs
         '''
         
         return [obj for obj in self.map_objs if obj.aaa]
     
-    def bombers(self) -> list[map_obj]:
+    def bombers(self) -> list:
         '''
         Return a list of map_objs that includes all bombers (and helicopters) currently in the match
         
         Returns:
-            BombersHelicopters:
-                list of map_objs of found bombers/helicopters
+                List of map_objs of found bombers/helicopters
         '''
         
         return [obj for obj in self.map_objs if obj.bomber]
     
-    def heavy_fighters(self) -> list[map_obj]:
+    def heavy_fighters(self) -> list:
         '''
         Return a list of map_objs that includes all heavy fighters currently in the match
         
         Returns:
-            HeavyFighters:
-                list of map_objs of found heavy fighters
+                List of map_objs of found heavy fighters
         '''
         
         return [obj for obj in self.map_objs if obj.heavy_fighter]
     
-    def fighters(self) -> list[map_obj]:
+    def fighters(self) -> list:
         '''
         Return a list of map_objs that includes all fighters currently in the match
         
         Returns:
-            Fighters:
-                list of map_objs of found fighters
+                List of map_objs of found fighters
         '''
         
         return [obj for obj in self.map_objs if obj.fighter]
     
-    def ships(self) -> list[map_obj]:
+    def ships(self) -> list:
         '''
         Return a list of map_objs that includes all shis currently in the match
         
         Returns:
-            Ships:
-                list of map_objs of found ships
+                List of map_objs of found ships
         '''
         
         return [obj for obj in self.map_objs if obj.ship or obj.torpedo_boat]
     
-    def planes(self) -> list[map_obj]:
+    def planes(self) -> list:
         '''
         Return a list of map_objs that includes all planes currently in the match
         
         Returns:
-            Planes:
-                list of map_objs of found planes
+                List of map_objs of found planes
         '''
         
         output = []
@@ -745,46 +722,42 @@ class MapInfo(object):
         
         return output
     
-    def tank_respawns(self) -> list[map_obj]:
+    def tank_respawns(self) -> list:
         '''
         Return a list of map_objs that includes all tank respawns currently in the match
         
         Returns:
-            TankRespawns:
-                list of map_objs of found tank respawns
+                List of map_objs of found tank respawns
         '''
         
         return [obj for obj in self.map_objs if obj.tank_respawn]
     
-    def bomber_respawns(self) -> list[map_obj]:
+    def bomber_respawns(self) -> list:
         '''
         Return a list of map_objs that includes all bomber respawns currently in the match
         
         Returns:
-            BomberRespawns:
-                list of map_objs of found bomber respawns
+                List of map_objs of found bomber respawns
         '''
         
         return [obj for obj in self.map_objs if obj.bomber_respawn]
     
-    def fighter_respawns(self) -> list[map_obj]:
+    def fighter_respawns(self) -> list:
         '''
         Return a list of map_objs that includes all fighter respawns currently in the match
         
         Returns:
-            FighterRespawns:
-                list of map_objs of found fighter respawns
+                List of map_objs of found fighter respawns
         '''
         
         return [obj for obj in self.map_objs if obj.fighter_respawn]
     
-    def plane_respawns(self) -> list[map_obj]:
+    def plane_respawns(self) -> list:
         '''
         Return a list of map_objs that includes all plane respawns currently in the match
         
         Returns:
-            PlaneRespawns:
-                list of map_objs of found plane respawns
+                List of map_objs of found plane respawns
         '''
         
         output = []
@@ -794,24 +767,22 @@ class MapInfo(object):
         
         return output
     
-    def capture_zones(self) -> list[map_obj]:
+    def capture_zones(self) -> list:
         '''
         Return a list of map_objs that includes all capture zones currently in the match
         
         Returns:
-            CaptureZones:
-                list of map_objs of found capture zones
+                List of map_objs of found capture zones
         '''
         
         return [obj for obj in self.map_objs if obj.capture_zone]
     
-    def defend_points(self) -> list[map_obj]:
+    def defend_points(self) -> list:
         '''
         Return a list of map_objs that includes all defend points currently in the match
         
         Returns:
-            DefendPoints:
-                list of map_objs of found defend points
+                List of map_objs of found defend points
         '''
         
         return [obj for obj in self.map_objs if obj.defend_point]
