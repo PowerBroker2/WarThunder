@@ -16,5 +16,5 @@ setup(
     download_url     = 'https://github.com/PowerBroker2/WarThunder/archive/2.3.1.tar.gz',
     keywords         = ['War Thunder'],
     classifiers      = [],
-    install_requires = ['imagehash', 'requests', 'Pillow', 'WarThunder']
+    install_requires = ['imagehash', 'requests', 'Pillow', 'simplejson']
 )
