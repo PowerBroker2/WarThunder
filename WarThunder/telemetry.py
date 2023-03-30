@@ -57,8 +57,8 @@ class TelemInterface(object):
         self.indicators      = {}
         self.state           = {}
         self.map_info        = mapinfo.MapInfo()
-        self.last_event_ID   = 0
-        self.last_comment_ID = 0
+        self.last_event_ID   = -1
+        self.last_comment_ID = -1
         self.comments        = []
         self.events          = {}
         self.status          = WT_NOT_RUNNING
@@ -90,7 +90,12 @@ class TelemInterface(object):
         
         events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID))
         self.events        = combine_dicts(self.events, events_response.json())
-        self.last_event_ID = max([event['id'] for event in self.events['damage']])
+        
+        try:
+            self.last_event_ID = max([event['id'] for event in self.events['damage']])
+        except ValueError:
+            self.last_event_ID = -1
+        
         return self.events
     
     def find_altitude(self) -> float:
