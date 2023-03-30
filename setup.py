@@ -13,7 +13,7 @@ setup(
     author           = 'Power_Broker',
     author_email     = 'gitstuff2@gmail.com',
     url              = 'https://github.com/PowerBroker2/WarThunder',
-    download_url     = 'https://github.com/PowerBroker2/WarThunder/archive/2.3.2.tar.gz',
+    download_url     = 'https://github.com/PowerBroker2/WarThunder/archive/2.3.3.tar.gz',
     keywords         = ['War Thunder'],
     classifiers      = [],
     install_requires = ['imagehash', 'requests', 'Pillow', 'simplejson']
