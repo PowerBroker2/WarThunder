@@ -104,10 +104,10 @@ def find_events():
 def find_bomb_points(friendly=True):
     if friendly:
         print('Friendly Bomb Points:')
-        bomb_points = [obj for obj in telem.map_info.bases() if obj.friendly]
+        bomb_points = [obj for obj in telem.map_info.defend_points() if obj.friendly]
     else:
         print('Enemy Bomb Points:')
-        bomb_points = [obj for obj in telem.map_info.bases() if not obj.friendly]
+        bomb_points = [obj for obj in telem.map_info.bombing_points() if not obj.friendly]
     
     if bomb_points:
         for bomb_point in bomb_points:
