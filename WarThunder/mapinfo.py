@@ -235,7 +235,6 @@ class map_obj(object):
         self.east_end_ll   = [0, 0] # ONLY for airfield
         self.runway_dir    = 0      # ONLY for airfield
         self.airfield      = False
-        self.base          = False
         self.heavy_tank    = False
         self.medium_tank   = False
         self.light_tank    = False
@@ -254,6 +253,7 @@ class map_obj(object):
         self.fighter_respawn = False
         self.capture_zone  = False
         self.defend_point  = False
+        self.bombing_point = False
         
         self.hdg = 0
         
@@ -312,9 +312,10 @@ class map_obj(object):
             self.airfield = False
             
         if self.icon.lower() == 'bombing_point':
-            self.base = True
+            self.bombing_point = True
+            self.friendly      = False
         else:
-            self.base = False
+            self.bombing_point = False
         
         if self.icon.lower() == 'heavytank':
             self.heavy_tank = True
@@ -403,6 +404,7 @@ class map_obj(object):
         
         if self.icon.lower() == 'defending_point':
             self.defend_point = True
+            self.friendly     = True
         else:
             self.defend_point = False
         
@@ -558,15 +560,15 @@ class MapInfo(object):
         
         return [obj for obj in self.map_objs if obj.airfield]
     
-    def bases(self) -> list:
+    def bombing_points(self) -> list:
         '''
-        Return a list of map_objs that includes all bases (bomb points) currently in the match
+        Return a list of map_objs that includes all bomb points currently in the match
         
         Returns:
-                List of map_objs of found bases 
+                List of map_objs of found bombing points 
         '''
         
-        return [obj for obj in self.map_objs if obj.base]
+        return [obj for obj in self.map_objs if obj.bombing_point]
     
     def heavy_tanks(self) -> list:
         '''
