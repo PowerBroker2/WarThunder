@@ -549,6 +549,8 @@ class MapInfo(object):
                     
                     self.player_lat = self.map_objs[-1].position_ll[0]
                     self.player_lon = self.map_objs[-1].position_ll[1]
+                    self.player_x   = self.map_objs[-1].position[0]
+                    self.player_y   = self.map_objs[-1].position[1]
     
     def airfields(self) -> list:
         '''
