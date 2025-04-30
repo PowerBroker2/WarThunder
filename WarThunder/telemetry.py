@@ -1,11 +1,10 @@
 '''
 Module to query and access telemetry data during War Thunder matches
 '''
-
-
 import socket
 import requests
 from WarThunder import mapinfo
+from datetime import datetime
 
 
 IP_ADDRESS     = socket.gethostbyname(socket.gethostname())
@@ -23,7 +22,8 @@ METRICS_PLANES = ['p-', 'f-', 'f2', 'f3', 'f4', 'f6', 'f7', 'f8', 'f9', 'os',
                   'sb', 'tb', 'a-', 'pb', 'am', 'ad', 'fj', 'b-', 'b_', 'xp',
                   'bt', 'xa', 'xf', 'sp', 'hu', 'ty', 'fi', 'gl', 'ni', 'fu',
                   'fu', 'se', 'bl', 'be', 'su', 'te', 'st', 'mo', 'we', 'ha']
-
+EVENTS_ALL     = 1
+EVENTS_CHUNK   = 2
 
 def combine_dicts(to_dict: dict, from_dict: dict) -> dict:
     '''
@@ -78,26 +78,42 @@ class TelemInterface(object):
             self.last_comment_ID = max([comment['id'] for comment in self.comments])
         return self.comments
     
-    def get_events(self) -> dict:
-        '''
+    def get_events(self, events_mode = EVENTS_ALL) -> dict:
+        """
         Query http://localhost:8111/hudmsg?lastEvt=-1&lastDmg=-1 to get
         information on all events (i.e. when someone is damaged or destroyed)
         in the current match
-        
-        Returns:
-                Events log dictionary
-        '''
-        
-        events_response    = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID))
-        self.events        = combine_dicts(self.events, events_response.json())
-        
+        The dictionary contains two keys:{'damage': [], 'events': []}
+        'damage' is an array of dictionaries with the following fields:
+            - 'enemy': False
+            - 'id': 129 - Monotonically increasing
+            - 'mode': ''
+            - 'msg': '-NFLD- Hoodoo_Operator (Mirage F1CT) was down'
+            - 'sender': ''
+            - 'time': 376 - Time in seconds since the start of the current match 
+        :param events_mode:
+                - EVENTS_ALL    - Cumulative mode: returns a dictionary containing all events since War Thunder was launched.
+                - EVENTS_CHUNK - Returns only events that occurred since the last data request.
+                                   In this case, the array includes an additional `current_time` attribute containing the time of the request to WT.
+        :return: Events log dictionary
+        """
+        events_response = requests.get(URL_EVENTS.format(IP_ADDRESS, self.last_event_ID)).json()
+        if events_mode == EVENTS_ALL:
+            self.events.update(events_response)
+
+        if events_mode == EVENTS_CHUNK:
+            current_time = fr'{datetime.now().hour:02.0f}:{datetime.now().minute:02.0f}:{datetime.now().second:02.0f}'
+            for event in events_response['damage']:
+                event['current_time'] = current_time
+            self.events = events_response
         try:
-            self.last_event_ID = max([event['id'] for event in self.events['damage']])
+            if len(self.events['damage'])>0:
+                self.last_event_ID = max([event['id'] for event in self.events['damage']])
         except ValueError:
             self.last_event_ID = -1
         
         return self.events
-    
+
     def find_altitude(self) -> float:
         '''
         Finds and standardizes reported alittude to meters for all planes
@@ -128,7 +144,7 @@ class TelemInterface(object):
             else:
                 return 0
 
-    def get_telemetry(self, comments: bool = False, events: bool = False) -> bool:
+    def get_telemetry(self, comments: bool = False, events: bool = False, events_mode = EVENTS_ALL ) -> bool:
         '''
         Ping http://localhost:8111/indicators and http://localhost:8111/state
         to sample telemetry data. Each one of the URL requests returns a
@@ -148,7 +164,9 @@ class TelemInterface(object):
                 Whether or not to query for match comment data
             events:
                 Whether or not to query for match event data
-        
+            events_mode:
+                - EVENTS_ALL    - Cumulative mode: returns a dictionary containing all events since War Thunder was launched.
+                - EVENTS_CHUNK - Returns only events that occurred since the last data request. In this case, the array includes an additional `current_time` attribute containing the time of the request to WT.
         Returns:
                 Whether or not player is in a match
         '''
@@ -173,7 +191,7 @@ class TelemInterface(object):
                 self.comments = []
             
             if events:
-                self.get_events()
+                self.get_events(events_mode=events_mode)
             else:
                 self.events = {}
 
