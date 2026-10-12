@@ -2,10 +2,7 @@
 Module to query and access map and non-player object/vehicle data during War Thunder matches
 '''
 
-
 import os
-import socket
-import imagehash
 from time import sleep
 from requests import get
 from PIL import Image, ImageDraw
@@ -14,503 +11,272 @@ from simplejson.errors import JSONDecodeError as simpleJSONDecodeError
 from urllib.error import URLError
 from urllib.request import urlretrieve
 from requests.exceptions import ReadTimeout, ConnectTimeout
-from math import radians, degrees, sqrt, sin, asin, cos, atan2
-from WarThunder.maps import maps
+from math import sqrt, atan2, degrees, radians, pi
 
 
-LOCAL_PATH   = os.path.dirname(os.path.realpath(__file__))
-MAP_PATH     = os.path.join(LOCAL_PATH, 'map.jpg')
-IP_ADDRESS   = socket.gethostbyname(socket.gethostname())
-URL_MAP_IMG  = 'http://{}:8111/map.img'.format(IP_ADDRESS)
-URL_MAP_OBJ  = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
-URL_MAP_INFO = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
-ENEMY_HEX_COLORS = ['#f40C00', '#ff0D00', '#ff0000']
-MAX_HAMMING_DIST = 3
-EARTH_RADIUS_KM  = 6378.137
-REQUEST_TIMEOUT  = 0.1
+LOCAL_PATH       = os.path.dirname(os.path.realpath(__file__))
+MAP_PATH         = os.path.join(LOCAL_PATH, 'map.jpg')
+IP_ADDRESS       = '127.0.0.1'
+URL_MAP_IMG      = 'http://{}:8111/map.img'.format(IP_ADDRESS)
+URL_MAP_OBJ      = 'http://{}:8111/map_obj.json'.format(IP_ADDRESS)
+URL_MAP_INFO     = 'http://{}:8111/map_info.json'.format(IP_ADDRESS)
+REQUEST_TIMEOUT  = 1.0
+
+# WGS84 Earth Semi-Major Axis in meters
+EARTH_RADIUS     = 6378137.0
 
 
 def hypotenuse(a: float, b: float) -> float:
     '''
     Find the length of the hypotenuse side of a right triangle
-    
-    Args:
-        a:
-            One side of the right triange
-        b:
-            Other side of the right triange
-    
-    Returns:
-            Length of the hypotenuse
     '''
-    
     return sqrt((a ** 2) + (b ** 2))
 
-def coord_bearing(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> float:
-    '''
-    Find the bearing (in degrees) between two lat/lon coordinates (dd)
-    
-    Args:
-        lat_1:
-            First point's latitude (dd)
-        lon_1:
-            First point's longitude (dd)
-        lat_2:
-            Second point's latitude (dd)
-        lon_2:
-            Second point's longitude (dd)
-    
-    Returns:
-            Bearing in degrees between point 1 and 2
-    '''
-    
-    deltaLon_r = radians(lon_2 - lon_1)
-    lat_1_r = radians(lat_1)
-    lat_2_r = radians(lat_2)
 
-    x = cos(lat_2_r) * sin(deltaLon_r)
-    y = cos(lat_1_r) * sin(lat_2_r) - sin(lat_1_r) * cos(lat_2_r) * cos(deltaLon_r)
+def coord_dist(*args) -> float:
+    '''
+    Calculate the straight-line distance between two metric NED points in kilometers.
+    Accepts either 4 arguments (n1, e1, n2, e2) or two point lists/tuples ([n1, e1], [n2, e2]).
+    '''
+    if len(args) == 4:
+        n1, e1, n2, e2 = args
+    elif len(args) == 2 and isinstance(args[0], (list, tuple)) and isinstance(args[1], (list, tuple)):
+        n1, e1 = args[0]
+        n2, e2 = args[1]
+    else:
+        return 0.0
+    
+    return sqrt((n2 - n1)**2 + (e2 - e1)**2) / 1000.0
 
-    return (degrees(atan2(x, y)) + 360) % 360
 
-def coord_dist(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> float:
+def ned_to_lla(northing: float, easting: float, down: float, ref_lat: float = 37.0, ref_lon: float = -120.0, ref_alt: float = 0.0) -> tuple:
     '''
-    Find the total distance (in km) between two lat/lon coordinates (dd)
-    
-    Args:
-        lat_1:
-            First point's latitude (dd)
-        lon_1:
-            First point's longitude (dd)
-        lat_2:
-            Second point's latitude (dd)
-        lon_2:
-            Second point's longitude (dd)
-    
-    Returns:
-            Distance in km between point 1 and 2
+    Convert local NED (North-East-Down) coordinates in meters to WGS84 LLA 
+    (Latitude, Longitude, Altitude) based on a reference origin.
     '''
+    d_lat = (northing / EARTH_RADIUS) * (180.0 / pi)
+    d_lon = (easting / (EARTH_RADIUS * cos_lat(ref_lat))) * (180.0 / pi) if abs(cos_lat(ref_lat)) > 1e-6 else 0.0
     
-    lat_1_rad = radians(lat_1)
-    lon_1_rad = radians(lon_1)
-    lat_2_rad = radians(lat_2)
-    lon_2_rad = radians(lon_2)
+    lat = ref_lat + d_lat
+    lon = ref_lon + d_lon
+    alt = ref_alt - down
     
-    d_lat = lat_2_rad - lat_1_rad
-    d_lon = lon_2_rad - lon_1_rad
-    
-    a = (sin(d_lat / 2) ** 2) + cos(lat_1_rad) * cos(lat_2_rad) * (sin(d_lon / 2) ** 2)
-    
-    return 2 * EARTH_RADIUS_KM * atan2(sqrt(a), sqrt(1 - a))
+    return lat, lon, alt
 
-def coord_coord(lat: float, lon: float, dist: float, bearing: float) -> list:
-    '''
-    Finds the lat/lon coordinates "dist" km away from the given "lat" and "lon"
-    coordinate along the given compass "bearing"
-    
-    Args:
-        lat:
-            First point's latitude (dd)
-        lon:
-            First point's longitude (dd)
-        dist:
-            Distance in km the second point should be from the first point
-        bearing:
-            Bearing in degrees from the first point to the second
-    
-    Returns:
-            Latitude and longitude in DD of the second point
-    '''
-    
-    brng  = radians(bearing)
-    lat_1 = radians(lat)
-    lon_1 = radians(lon)
-    
-    lat_2 = asin(sin(lat_1) * cos(dist / EARTH_RADIUS_KM) + cos(lat_1) * sin(dist / EARTH_RADIUS_KM) * cos(brng))
-    lon_2 = lon_1 + atan2(sin(brng) * sin(dist / EARTH_RADIUS_KM) * cos(lat_1), cos(dist / EARTH_RADIUS_KM) - sin(lat_1) * sin(lat_2))
-    
-    return [degrees(lat_2), degrees(lon_2)]
 
-def get_grid_info(map_img: Image) -> dict:
-    '''
-    Compare map from browser interface to pre-calculated map hash to provide
-    location info.
-    
-    Args:
-        map_img:
-            PIL.Image object of the current map's JPEG
-    
-    Returns:
-            Dictionary with map metadata. Example - 
-                {'name': 'Kursk',
-                 'ULHC_lat': 51.16278580067218,
-                 'ULHC_lon': 36.906235369488115,
-                 'size_km' : 65},
-    '''
-    
-    hash_ = str(imagehash.average_hash(map_img))
-    hamming_dists = []
-    
-    for map_hash in maps.keys():
-        hamming_dists.append((len([index for index in range(len(hash_)) if not hash_[index] == map_hash[index]]), map_hash))
-        
-        
-    match = min(hamming_dists)
-    
-    if match[0] <= MAX_HAMMING_DIST:
-        return maps[match[1]]
-    
-    return {'name': 'UNKNOWN',
-            'ULHC_lat': 0.0,
-            'ULHC_lon': 0.0,
-            'size_km' : 65}
+def cos_lat(lat_deg: float) -> float:
+    return sqrt(1.0 - (radians(lat_deg) * radians(lat_deg)) / 2.0) if abs(lat_deg) < 45 else __import__('math').cos(radians(lat_deg))
 
-def find_obj_coords(x: float, y: float, map_size: float, ULHC_lat: float, ULHC_lon: float) -> list:
+
+def lla_to_ned(lat: float, lon: float, alt: float, ref_lat: float = 37.0, ref_lon: float = -120.0, ref_alt: float = 0.0) -> tuple:
     '''
-    Convert the provided object's x/y coordinate to lat/lon
-    
-    Args:
-        x:
-            The distance of the object from the upper left hand corner of the
-            map in the horizontal direction. x=0 means the object is on the
-            left border of the map and x=1 means the object is on the right
-            border
-        y:
-            The distance of the object from the upper left hand corner of the
-            map in the vertical direction. y=0 means the object is on the top
-            border of the map and y=1 means the object is on the bottom border
-        map_size:
-            The length/width of the map in km (all maps are square)
-        ULHC_lat:
-            The true world estimated latidude of the map's upper left hand
-            corner point
-        ULHC_lon:
-            The true world estimated longitude of the map's upper left hand
-            corner point
-    
-    Returns:
-            Estimated latitude and longitude of the object's position
+    Convert WGS84 LLA (Latitude, Longitude, Altitude) to local NED (North-East-Down) 
+    in meters relative to a reference origin.
     '''
+    d_lat = radians(lat - ref_lat)
+    d_lon = radians(lon - ref_lon)
     
-    dist_x  = x * map_size
-    dist_y  = y * map_size
-    dist    = hypotenuse(dist_x, dist_y)
-    bearing = degrees(atan2(y, x)) + 90
+    northing = d_lat * EARTH_RADIUS
+    easting = d_lon * EARTH_RADIUS * __import__('math').cos(radians(ref_lat))
+    down = ref_alt - alt
     
-    if bearing < 0:
-        bearing += 360
-    
-    return coord_coord(ULHC_lat, ULHC_lon, dist, bearing)
+    return northing, easting, down
 
 
 class map_obj(object):
-    def __init__(self, map_obj_entry: dict = {}, map_size: float = 65, ULHC_lat: float = 0, ULHC_lon: float = 0):
-        '''
-        Args:
-            map_obj_entry:
-                A single object/vehicle entry from the JSON scraped from
-                http://localhost:8111/map_obj.json
-            map_size:
-                The length/width of the map in km (all maps are square)
-            ULHC_lat:
-                The true world estimated latidude of the map's upper left hand
-                corner point
-            ULHC_lon:
-                The true world estimated longitude of the map's upper left hand
-                corner point
-        '''
+    def __init__(self, map_obj_entry: dict = None, map_info_meta: dict = None):
+        if map_obj_entry is None:
+            map_obj_entry = {}
+        if map_info_meta is None:
+            map_info_meta = {}
+            
+        self.type       = ''
+        self.icon       = ''
+        self.hex_color  = ''
+        self.friendly   = True
         
-        self.type      = ''
-        self.icon      = ''
-        self.hex_color = ''
-        self.friendly  = True
+        self.position       = [0.0, 0.0]
+        self.position_ned   = [0.0, 0.0]
+        self.position_delta = [0.0, 0.0]
         
-        self.position       = [0, 0] # NOT for airfield
-        self.position_delta = [0, 0] 
-        self.south_end      = [0, 0] # ONLY for airfield
-        self.east_end       = [0, 0] # ONLY for airfield
+        self.south_end      = [0.0, 0.0]
+        self.east_end       = [0.0, 0.0]
+        self.south_end_ned  = [0.0, 0.0]
+        self.east_end_ned   = [0.0, 0.0]
+        self.runway_dir     = 0.0
         
-        self.position_ll   = [0, 0] # NOT for airfield
-        self.south_end_ll  = [0, 0] # ONLY for airfield
-        self.east_end_ll   = [0, 0] # ONLY for airfield
-        self.runway_dir    = 0      # ONLY for airfield
-        self.airfield      = False
-        self.heavy_tank    = False
-        self.medium_tank   = False
-        self.light_tank    = False
-        self.spg           = False
-        self.spaa          = False
-        self.wheeled       = False # AI only
-        self.tracked       = False # AI only
-        self.aaa           = False
-        self.bomber        = False # Also helicopter (thanks Gayjin, very cool)
-        self.heavy_fighter = False
-        self.fighter       = False
-        self.ship          = False
-        self.torpedo_boat  = False
-        self.tank_respawn  = False
-        self.bomber_respawn  = False
+        self.airfield       = False
+        self.heavy_tank     = False
+        self.medium_tank    = False
+        self.light_tank     = False
+        self.spg            = False
+        self.spaa           = False
+        self.wheeled        = False
+        self.tracked        = False
+        self.aaa            = False
+        self.bomber         = False
+        self.heavy_fighter  = False
+        self.fighter        = False
+        self.ship           = False
+        self.torpedo_boat   = False
+        self.tank_respawn   = False
+        self.bomber_respawn = False
         self.fighter_respawn = False
-        self.capture_zone  = False
-        self.defend_point  = False
-        self.bombing_point = False
+        self.capture_zone   = False
+        self.defend_point   = False
+        self.bombing_point  = False
         
-        self.hdg = 0
+        self.hdg = 0.0
         
         if map_obj_entry:
-            self.update(map_obj_entry, map_size, ULHC_lat, ULHC_lon)
+            self.update(map_obj_entry, map_info_meta)
     
-    def update(self, map_obj_entry: dict, map_size: float, ULHC_lat: float, ULHC_lon: float):
-        '''
-        Description:
-        ------------
-        Update object attributes based on the provided map context. Such attributes
-        include:
+    def _convert_to_ned(self, x: float, y: float, meta: dict) -> list:
+        try:
+            map_min = meta.get('map_min', [-65536.0, -65536.0])
+            map_max = meta.get('map_max', [65536.0, 65536.0])
+            grid_zero = meta.get('grid_zero', [0.0, 0.0])
+            grid_size = meta.get('grid_size', [1.0, 1.0])
             
-            self.type
-            self.icon
-            self.hex_color
-            self.position       (x-y coordinate)
-            self.position_ll    (estimated latitude and longitude)
-            self.position_delta (x-y difference)
-            self.hdg
-            self.south_end    (x-y coordinate)
-            self.south_end_ll (estimated latitude and longitude)
-            self.east_end     (x-y coordinate)
-            self.east_end_ll  (estimated latitude and longitude)
-            self.runway_dir
+            span_x = map_max[0] - map_min[0]
+            span_y = map_max[1] - map_min[1]
             
-        plus other attributes that denote the object's vehicle type (i.e. ship
-        or fighter)
+            if grid_size[0] > 0 and grid_size[1] > 0:
+                easting = map_min[0] + (x * span_x) + grid_zero[0]
+                northing = map_max[1] - (y * span_y) + grid_zero[1]
+            else:
+                easting = map_min[0] + (x * span_x)
+                northing = map_max[1] - (y * span_y)
+            
+            return [northing, easting]
+        except Exception:
+            return [0.0, 0.0]
+
+    def update(self, map_obj_entry: dict, map_info_meta: dict):
+        self.type       = map_obj_entry.get('type', '')
+        self.icon       = map_obj_entry.get('icon', '')
+        self.hex_color  = map_obj_entry.get('color', '')
+        rgb_color       = map_obj_entry.get('color[]', [0, 0, 0])
         
-        Args:
-            map_obj_entry:
-                A single object/vehicle entry from the JSON scraped from
-                http://localhost:8111/map_obj.json
-            map_size:
-                The length/width of the map in km (all maps are square)
-            ULHC_lat:
-                The true world estimated latidude of the map's upper left hand
-                corner point
-            ULHC_lon:
-                The true world estimated longitude of the map's upper left hand
-                corner point
-        '''
+        hex_lower = self.hex_color.lower()
+        known_enemy_hexes = {'#fa0c00', '#f40c00', '#ff0d00', '#ff0000', '#f00c00', '#fa0800'}
         
-        self.type      = map_obj_entry['type']
-        self.icon      = map_obj_entry['icon']
-        self.hex_color = map_obj_entry['color']
+        is_red_hex = hex_lower in known_enemy_hexes
+        is_red_rgb = len(rgb_color) >= 3 and rgb_color[0] > rgb_color[2] and rgb_color[0] > 100
         
-        if (self.hex_color in ENEMY_HEX_COLORS) or map_obj_entry['blink']:
+        if is_red_hex or is_red_rgb or map_obj_entry.get('blink', 0):
             self.friendly = False
         else:
             self.friendly = True
                
-        if self.type.lower() == 'airfield':
-            self.airfield = True
-        else:
-            self.airfield = False
+        type_lower = self.type.lower()
+        icon_lower = self.icon.lower()
+        
+        self.airfield = (type_lower == 'airfield' or icon_lower == 'airfield')
+        self.bombing_point = (type_lower == 'bombing_point' or icon_lower == 'bombing_point')
+        if self.bombing_point:
+            self.friendly = False
             
-        if self.icon.lower() == 'bombing_point':
-            self.bombing_point = True
-            self.friendly      = False
-        else:
-            self.bombing_point = False
+        self.heavy_tank = icon_lower in ('heavytank', 'heavy_tank')
+        self.medium_tank = icon_lower in ('mediumtank', 'medium_tank', 'ifv', 'apc')
+        self.light_tank = icon_lower in ('lighttank', 'light_tank')
+        self.spg = icon_lower in ('tankdestroyer', 'spg', 'tank_destroyer')
+        self.spaa = icon_lower in ('spaa', 'sam')
+        self.wheeled = icon_lower == 'wheeled'
+        self.tracked = icon_lower == 'tracked'
+        self.aaa = icon_lower in ('airdefence', 'aaa', 'artillery')
         
-        if self.icon.lower() == 'heavytank':
-            self.heavy_tank = True
-        else:
-            self.heavy_tank = False
+        self.bomber = icon_lower in ('bomber', 'helicopter')
+        self.heavy_fighter = icon_lower in ('assault', 'heavy_fighter', 'strike')
+        self.fighter = icon_lower in ('fighter', 'player', 'aircraft')
         
-        if self.icon.lower() == 'mediumtank':
-            self.medium_tank = True
-        else:
-            self.medium_tank = False
-                
-        if self.icon.lower() == 'lighttank':
-            self.light_tank = True
-        else:
-            self.light_tank = False
+        self.ship = icon_lower in ('ship', 'torpedoboat', 'boat', 'frigate', 'destroyer', 'cruiser', 'battleship', 'missiledestroyer', 'corvette')
+        self.torpedo_boat = icon_lower in ('torpedoboat', 'boat')
         
-        if self.icon.lower() == 'tankdestroyer':
-            self.spg = True
-        else:
-            self.spg = False
+        self.tank_respawn = icon_lower in ('respawn_base_tank', 'spawn_tank')
+        self.bomber_respawn = icon_lower in ('respawn_base_bomber', 'spawn_bomber')
+        self.fighter_respawn = icon_lower in ('respawn_base_fighter', 'spawn_fighter')
         
-        if self.icon.lower() == 'spaa':
-            self.spaa = True
-        else:
-            self.spaa = False
-        
-        if self.icon.lower() == 'wheeled':
-            self.wheeled = True
-        else:
-            self.wheeled = False
-            
-        if self.icon.lower() == 'tracked':
-            self.tracked = True
-        else:
-            self.tracked = False
-        
-        if self.icon.lower() == 'airdefence':
-            self.aaa = True
-        else:
-            self.aaa = False
-        
-        if self.icon.lower() == 'bomber':
-            self.bomber = True
-        else:
-            self.bomber = False
-        
-        if self.icon.lower() == 'assault':
-            self.heavy_fighter = True
-        else:
-            self.heavy_fighter = False
-        
-        if self.icon.lower() == 'fighter':
-            self.fighter = True
-        else:
-            self.fighter = False
-        
-        if self.icon.lower() == 'ship':
-            self.ship = True
-        else:
-            self.ship = False
-        
-        if self.icon.lower() == 'torpedoboat':
-            self.torpedo_boat = True
-        else:
-            self.torpedo_boat = False
-        
-        if self.icon.lower() == 'respawn_base_tank':
-            self.tank_respawn = True
-        else:
-            self.tank_respawn = False
-        
-        if self.icon.lower() == 'respawn_base_bomber':
-            self.bomber_respawn = True
-        else:
-            self.bomber_respawn = False
-        
-        if self.icon.lower() == 'respawn_base_fighter':
-            self.fighter_respawn = True
-        else:
-            self.fighter_respawn = False
-        
-        if self.icon.lower() == 'capture_zone':
-            self.capture_zone = True
-        else:
-            self.capture_zone = False
-        
-        if self.icon.lower() == 'defending_point':
-            self.defend_point = True
-            self.friendly     = True
-        else:
-            self.defend_point = False
+        self.capture_zone = type_lower in ('capture_zone', 'zone') or icon_lower == 'capture_zone'
+        self.defend_point = type_lower == 'defending_point' or icon_lower == 'defending_point'
+        if self.defend_point:
+            self.friendly = True
         
         try:
             self.position = [map_obj_entry['x'], map_obj_entry['y']]
         except KeyError:
-            self.position = [0, 0]
+            self.position = [0.0, 0.0]
         
         try:
             self.position_delta = [map_obj_entry['dx'], map_obj_entry['dy']]
-            
             self.hdg = degrees(atan2(*self.position_delta)) + 90
-                    
             if self.hdg < 0:
                 self.hdg += 360
         except KeyError:
-            self.position_delta = [0, 0]
-            self.hdg = 0
+            self.position_delta = [0.0, 0.0]
+            self.hdg = 0.0
         
         try:
             self.south_end = [map_obj_entry['sx'], map_obj_entry['sy']]
             self.east_end  = [map_obj_entry['ex'], map_obj_entry['ey']]
             
-            self.south_end_ll = find_obj_coords(*self.south_end,
-                                                map_size,
-                                                ULHC_lat,
-                                                ULHC_lon)
-            self.east_end_ll = find_obj_coords(*self.east_end,
-                                               map_size,
-                                               ULHC_lat,
-                                               ULHC_lon)
-            self.runway_dir = coord_bearing(*self.south_end_ll,
-                                            *self.east_end_ll)
+            self.south_end_ned = self._convert_to_ned(*self.south_end, map_info_meta)
+            self.east_end_ned  = self._convert_to_ned(*self.east_end, map_info_meta)
+            
+            d_north = self.east_end_ned[0] - self.south_end_ned[0]
+            d_east  = self.east_end_ned[1] - self.south_end_ned[1]
+            self.runway_dir = (degrees(atan2(d_east, d_north)) + 360) % 360
         except KeyError:
-            self.south_end = [0, 0]
-            self.east_end  = [0, 0]
-            
-            self.south_end_ll = [0, 0]
-            self.east_end_ll  = [0, 0]
-            
-            self.runway_dir = 0
+            self.south_end = [0.0, 0.0]
+            self.east_end  = [0.0, 0.0]
+            self.south_end_ned = [0.0, 0.0]
+            self.east_end_ned  = [0.0, 0.0]
+            self.runway_dir = 0.0
         
-        self.position_ll = find_obj_coords(*self.position,
-                                           map_size,
-                                           ULHC_lat,
-                                           ULHC_lon)
+        self.position_ned = self._convert_to_ned(*self.position, map_info_meta)
+        
+        self.position_ll = self.position_ned
+        self.south_end_ll = self.south_end_ned
+        self.east_end_ll = self.east_end_ned
 
 
 class MapInfo(object):
     def __init__(self):
         self.map_valid = False
         self.map_objs  = []
+        self.info      = {}
+        self.obj       = []
+        self.grid_info = {}
+        
+        self.player_ned_n = 0.0
+        self.player_ned_e = 0.0
+        self.player_lat   = 0.0
+        self.player_lon   = 0.0
     
     def download_files(self) -> bool:
-        '''
-        Sample information about the map and the "seen" objects in the match
-        from the localhost
-        
-        Example self.info - 
-        {'grid_steps': [8192.0, 8192.0],
-         'grid_zero': [-28672.0, 28672.0],
-         'map_generation': 12,
-         'map_max': [32768.0, 32768.0],
-         'map_min': [-32768.0, -32768.0]}
-        
-        Example self.obj - 
-        [{'type': 'airfield',
-          'color': '#185AFF',
-          'color[]': [24, 90, 255],
-          'blink': 0,
-          'icon': 'none',
-          'icon_bg': 'none',
-          'sx': 0.338597,
-          'sy': 0.720108,
-          'ex': 0.357913,
-          'ey': 0.692523},
-         {'type': 'aircraft',
-          'color': '#fa3200',
-          'color[]': [250, 50, 0],
-          'blink': 0,
-          'icon': 'Fighter',
-          'icon_bg': 'none',
-          'x': 0.48744,
-          'y': 0.542793,
-          'dx': -0.640827,
-          'dy': 0.767686},
-         ...]
-        
-        Returns:
-                Whether or not the map data was successfully retrieved
-        '''
-        
         self.map_valid = False
         
         try:
             urlretrieve(URL_MAP_IMG, MAP_PATH)
             self.info = get(URL_MAP_INFO, timeout=REQUEST_TIMEOUT).json()
             self.obj  = get(URL_MAP_OBJ,  timeout=REQUEST_TIMEOUT).json()
-            self.parse_meta()
             
-            self.map_img  = Image.open(MAP_PATH)
-            self.map_draw = ImageDraw.Draw(self.map_img)
-            
-            self.grid_info = get_grid_info(self.map_img)
+            self.grid_info = {
+                'name': self.info.get('map_generation', 'DynamicMap'),
+                'map_min': self.info.get('map_min'),
+                'map_max': self.info.get('map_max'),
+                'grid_size': self.info.get('grid_size'),
+                'grid_steps': self.info.get('grid_steps'),
+                'grid_zero': self.info.get('grid_zero'),
+                'size_km': (self.info.get('map_max', [65536, 65536])[0] - self.info.get('map_min', [-65536, -65536])[0]) / 1000.0
+            }
             
             self.map_valid = True
+            self.parse_meta()
+            
+            with Image.open(MAP_PATH) as img:
+                self.map_img = img.copy()
+            self.map_draw = ImageDraw.Draw(self.map_img)
                 
         except URLError:
             print('ERROR: could not download map.jpg')
@@ -528,268 +294,95 @@ class MapInfo(object):
         return self.map_valid
     
     def parse_meta(self):
-        '''
-        Calculate values that might be useful for extra processing. Also build
-        a list of War Thunder objects (self.map_objs) present in the match to
-        keep track of
-        '''
-        
         self.map_objs = []
         self.player_found = False
         
-        if self.map_valid:
+        if self.map_valid and self.obj:
             for obj in self.obj:
-                self.map_objs.append(map_obj(obj,
-                                             self.grid_info['size_km'],
-                                             self.grid_info['ULHC_lat'],
-                                             self.grid_info['ULHC_lon']))
+                self.map_objs.append(map_obj(obj, self.info))
                 
-                if obj['icon'] == 'Player':
+                if obj.get('icon') == 'Player':
                     self.player_found = True
-                    
-                    self.player_lat = self.map_objs[-1].position_ll[0]
-                    self.player_lon = self.map_objs[-1].position_ll[1]
-                    self.player_x   = self.map_objs[-1].position[0]
-                    self.player_y   = self.map_objs[-1].position[1]
+                    self.player_ned_n = self.map_objs[-1].position_ned[0]
+                    self.player_ned_e = self.map_objs[-1].position_ned[1]
+                    self.player_lat   = self.player_ned_n
+                    self.player_lon   = self.player_ned_e
     
     def airfields(self) -> list:
-        '''
-        Return a list of map_objs that includes all airfields currently in the match
-        
-        Returns:
-                List of map_objs of found airfields
-        '''
-        
         return [obj for obj in self.map_objs if obj.airfield]
     
     def bombing_points(self) -> list:
-        '''
-        Return a list of map_objs that includes all bomb points currently in the match
-        
-        Returns:
-                List of map_objs of found bombing points 
-        '''
-        
         return [obj for obj in self.map_objs if obj.bombing_point]
     
     def heavy_tanks(self) -> list:
-        '''
-        Return a list of map_objs that includes all heavy tanks currently in the match
-        
-        Returns:
-                List of map_objs of found heavy tanks
-        '''
-        
         return [obj for obj in self.map_objs if obj.heavy_tank]
     
     def medium_tanks(self) -> list:
-        '''
-        Return a list of map_objs that includes all medium tanks currently in the match
-        
-        Returns:
-                List of map_objs of found medium tanks
-        '''
-        
         return [obj for obj in self.map_objs if obj.medium_tank]
     
     def light_tanks(self) -> list:
-        '''
-        Return a list of map_objs that includes all light tanks currently in the match
-        
-        Returns:
-                List of map_objs of found light tanks
-        '''
-        
         return [obj for obj in self.map_objs if obj.light_tank]
     
     def SPGs(self) -> list:
-        '''
-        Return a list of map_objs that includes all spgs currently in the match
-        
-        Returns:
-                List of map_objs of found spgs
-        '''
-        
         return [obj for obj in self.map_objs if obj.spg]
     
     def SPAAs(self) -> list:
-        '''
-        Return a list of map_objs that includes all spaas currently in the match
-        
-        Returns:
-                List of map_objs of found spaas
-        '''
-        
         return [obj for obj in self.map_objs if obj.spaa]
     
     def tanks(self) -> list:
-        '''
-        Return a list of map_objs that includes all tanks currently in the match
-        
-        Returns:
-                List of map_objs of found tanks
-        '''
-        
         output = []
-        
         output.extend(self.heavy_tanks())
         output.extend(self.medium_tanks())
         output.extend(self.light_tanks())
         output.extend(self.SPGs())
         output.extend(self.SPAAs())
-        
         return output
     
     def wheeled_AIs(self) -> list:
-        '''
-        Return a list of map_objs that includes all wheeled AIs currently in the match
-        
-        Returns:
-                List of map_objs of found wheeled AIs
-        '''
-        
         return [obj for obj in self.map_objs if obj.wheeled]
     
     def tracked_AIs(self) -> list:
-        '''
-        Return a list of map_objs that includes all tracked AIs currently in the match
-        
-        Returns:
-                List of map_objs of found tracked AIs
-        '''
-        
         return [obj for obj in self.map_objs if obj.tracked]
     
     def AAAs(self) -> list:
-        '''
-        Return a list of map_objs that includes all AAAs currently in the match
-        
-        Returns:
-                List of map_objs of found AAAs
-        '''
-        
         return [obj for obj in self.map_objs if obj.aaa]
     
     def bombers(self) -> list:
-        '''
-        Return a list of map_objs that includes all bombers (and helicopters) currently in the match
-        
-        Returns:
-                List of map_objs of found bombers/helicopters
-        '''
-        
         return [obj for obj in self.map_objs if obj.bomber]
     
     def heavy_fighters(self) -> list:
-        '''
-        Return a list of map_objs that includes all heavy fighters currently in the match
-        
-        Returns:
-                List of map_objs of found heavy fighters
-        '''
-        
         return [obj for obj in self.map_objs if obj.heavy_fighter]
     
     def fighters(self) -> list:
-        '''
-        Return a list of map_objs that includes all fighters currently in the match
-        
-        Returns:
-                List of map_objs of found fighters
-        '''
-        
         return [obj for obj in self.map_objs if obj.fighter]
     
     def ships(self) -> list:
-        '''
-        Return a list of map_objs that includes all shis currently in the match
-        
-        Returns:
-                List of map_objs of found ships
-        '''
-        
         return [obj for obj in self.map_objs if obj.ship or obj.torpedo_boat]
     
     def planes(self) -> list:
-        '''
-        Return a list of map_objs that includes all planes currently in the match
-        
-        Returns:
-                List of map_objs of found planes
-        '''
-        
         output = []
-        
         output.extend(self.bombers())
         output.extend(self.heavy_fighters())
         output.extend(self.fighters())
-        
         return output
     
     def tank_respawns(self) -> list:
-        '''
-        Return a list of map_objs that includes all tank respawns currently in the match
-        
-        Returns:
-                List of map_objs of found tank respawns
-        '''
-        
         return [obj for obj in self.map_objs if obj.tank_respawn]
     
     def bomber_respawns(self) -> list:
-        '''
-        Return a list of map_objs that includes all bomber respawns currently in the match
-        
-        Returns:
-                List of map_objs of found bomber respawns
-        '''
-        
         return [obj for obj in self.map_objs if obj.bomber_respawn]
     
     def fighter_respawns(self) -> list:
-        '''
-        Return a list of map_objs that includes all fighter respawns currently in the match
-        
-        Returns:
-                List of map_objs of found fighter respawns
-        '''
-        
         return [obj for obj in self.map_objs if obj.fighter_respawn]
     
     def plane_respawns(self) -> list:
-        '''
-        Return a list of map_objs that includes all plane respawns currently in the match
-        
-        Returns:
-                List of map_objs of found plane respawns
-        '''
-        
         output = []
-        
         output.extend(self.bomber_respawns())
         output.extend(self.fighter_respawns())
-        
         return output
     
     def capture_zones(self) -> list:
-        '''
-        Return a list of map_objs that includes all capture zones currently in the match
-        
-        Returns:
-                List of map_objs of found capture zones
-        '''
-        
         return [obj for obj in self.map_objs if obj.capture_zone]
     
     def defend_points(self) -> list:
-        '''
-        Return a list of map_objs that includes all defend points currently in the match
-        
-        Returns:
-                List of map_objs of found defend points
-        '''
-        
         return [obj for obj in self.map_objs if obj.defend_point]
-    
-    
-
